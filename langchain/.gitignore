@@ -30,4 +30,11 @@ build/
 !**/src/test/**/build/
 
 ### VS Code ###
-.vscode/
+.vscode/*
+.vscode/settings.json
+.vscode/launch.json
+
+### Personal Token Information
+langchain/src/main/java/com/nsf/langchain/GitToken/GetToken.java
+langchain/src/main/resources/nsf-sar.2025-06-12.pkcs8.pem
+langchain/src/main/resources/nsf-sar.2025-06-12.private-key.pem
