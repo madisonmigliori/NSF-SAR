@@ -31,6 +31,26 @@
 		<spring-ai.version>1.0.0</spring-ai.version>
 	</properties>
 	<dependencies>
+		<!-- YOU JUST ADDED MAYBE DELETE IF NOT NECESSARY  -->
+		<dependency>
+  			<groupId>com.fasterxml.jackson.core</groupId>
+  			<artifactId>jackson-databind</artifactId>
+  			<version>2.16.1</version>
+		</dependency>
+		<!-- JWT generation -->
+    <dependency>
+        <groupId>com.auth0</groupId>
+        <artifactId>java-jwt</artifactId>
+        <version>4.4.0</version> <!-- Use latest if available -->
+    </dependency>
+
+    <!-- Jackson for JSON parsing -->
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.17.1</version>
+    </dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
