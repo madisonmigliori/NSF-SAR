@@ -29,12 +29,35 @@
 	<properties>
 		<java.version>21</java.version>
 		<spring-ai.version>1.0.0</spring-ai.version>
+		
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+
+    <!-- Enables integration with Ollama for local LLM hosting -->
+    <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-ollama</artifactId>
+        <version>1.0.0-alpha1</version>
+    </dependency>
+
+
+	<!-- LangChain4j provides a Spring Boot starter for auto-configuring AI Services, RAG, Tools etc. -->
+    <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-spring-boot-starter</artifactId>
+        <version>1.0.0-alpha1</version>
+    </dependency>
+
+    <!-- The AI Service can stream response token-by-token when using the Flux<String>. For this, please import langchain4j-reactor module -->
+    <dependency>
+        <groupId>dev.langchain4j</groupId>
+        <artifactId>langchain4j-reactor</artifactId>
+        <version>1.0.0-alpha1</version>
+    </dependency>
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-advisors-vector-store</artifactId>
@@ -63,13 +86,73 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<optional>true</optional>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-spring-boot-testcontainers</artifactId>
+		 </dependency>
+		 <dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp</artifactId>
+			<version>4.12.0</version>
+		</dependency>
+			<!-- Spring Boot -->
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-starter</artifactId>
+			</dependency>
+		
+			<!-- Jackson Databind -->
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
+			</dependency>
+		
+			<!-- OkHttp -->
+			<dependency>
+				<groupId>com.squareup.okhttp3</groupId>
+				<artifactId>okhttp</artifactId>
+				<version>4.12.0</version> <!-- or latest -->
+			</dependency>
+		
+			<!-- Langchain4j -->
+			<dependency>
+				<groupId>dev.langchain4j</groupId>
+				<artifactId>langchain4j</artifactId>
+				<version>0.24.0</version> <!-- match your version -->
+			</dependency>
+		
+			<!-- Optional: Spring Boot config -->
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-configuration-processor</artifactId>
+				<optional>true</optional>
+			</dependency>
+		
+	
+			<dependency>
+				<groupId>dev.langchain4j</groupId>
+				<artifactId>langchain4j-chroma</artifactId>
+				<version>1.0.1-beta6</version>
+			</dependency>
+	
+			<dependency>
+				<groupId>dev.langchain4j</groupId>
+				<artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId>
+				<version>1.0.1-beta6</version>
+			</dependency>
+	
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>chromadb</artifactId>
+			</dependency>
+			
+	
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
@@ -108,8 +191,30 @@
 						</exclude>
 					</excludes>
 				</configuration>
-			</plugin>
+			</plugin> 
+
+			<!-- TODO try to fix plugin to clean up dependencies -->
+			<!-- <plugin>
+  <groupId>com.diffplug.spotless</groupId>
+  <artifactId>spotless-maven-plugin</artifactId>
+  <version>2.28.0</version>
+  <configuration>
+    <java>
+      <importOrder>java,javax,org,com</importOrder>
+      <removeUnusedImports>true</removeUnusedImports>
+    </java>
+  </configuration>
+  <executions>
+    <execution>
+      <goals>
+        <goal>apply</goal>
+      </goals>
+    </execution>
+  </executions>
+</plugin> -->
+
 		</plugins>
 	</build>
+
 
 </project>

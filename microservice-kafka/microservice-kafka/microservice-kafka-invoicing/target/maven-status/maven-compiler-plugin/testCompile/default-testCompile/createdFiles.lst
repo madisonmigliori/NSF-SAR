@@ -1,0 +1,5 @@
+com/ewolff/microservice/invoicing/InvoicingServiceTest.class
+com/ewolff/microservice/invoicing/InvoiceWebIntegrationTest.class
+com/ewolff/microservice/invoicing/InvoiceTestApp.class
+com/ewolff/microservice/invoicing/InvoiceKafkaTest$Initializer.class
+com/ewolff/microservice/invoicing/InvoiceKafkaTest.class
