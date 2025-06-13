@@ -4,9 +4,9 @@ import java.net.*;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.Stack;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nsf.langchain.ParsingCode.GitToken.GetToken;
@@ -43,7 +43,7 @@ public class GitHubApi {
             String token = new GetToken().getToken();
             
             Stack<BinaryTreeNode> tovisit= new Stack<>();
-            BinaryTreeNode root = new BinaryTreeNode(repo, "repo", "");
+            BinaryTreeNode root = new BinaryTreeNode(repo, "repo", "", new ArrayList<BinaryTreeNode>());
             tovisit.push(root);
 
             while(!tovisit.isEmpty()){
