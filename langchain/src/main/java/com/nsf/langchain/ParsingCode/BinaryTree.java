@@ -1,0 +1,23 @@
+package com.nsf.langchain.ParsingCode;
+
+import java.util.ArrayList;
+import java.util.List;
+
+class BinaryTreeNode {
+    String name;
+    String type;
+    String path;
+    List<BinaryTreeNode> children;
+
+    public BinaryTreeNode(String name, String type, String path) {
+        this.name = name;
+        this.type = type;
+        this.path = path;
+        this.children = new ArrayList<BinaryTreeNode>();
+    }
+
+    public void addChild(BinaryTreeNode parent, BinaryTreeNode child){
+        parent.children.add(child);
+    }
+
+}
