@@ -1,0 +1,84 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "GitHubApi",
+            "request": "launch",
+            "mainClass": "com.nsf.langchain.ParsingCode.GitHubApi",
+            "projectName": "langchain"
+        },
+        {
+            "type": "java",
+            "name": "GitHubApiExample",
+            "request": "launch",
+            "mainClass": "com.nsf.langchain.GitHubApiExample",
+            "projectName": "langchain"
+        },
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "GitHubApiExample",
+            "request": "launch",
+            "mainClass": "GitHubApiExample",
+            "projectName": "langchain"
+        },
+        {
+            "type": "java",
+            "name": "LangchainApplication",
+            "request": "launch",
+            "mainClass": "com.nsf.langchain.LangchainApplication",
+            "projectName": "langchain"
+        },
+        {
+            "type": "java",
+            "name": "InvoiceApp",
+            "request": "launch",
+            "mainClass": "com.ewolff.microservice.invoicing.InvoiceApp",
+            "projectName": "microservice-kafka-invoicing"
+        },
+        {
+            "type": "java",
+            "name": "InvoiceTestApp",
+            "request": "launch",
+            "mainClass": "com.ewolff.microservice.invoicing.InvoiceTestApp",
+            "projectName": "microservice-kafka-invoicing"
+        },
+        {
+            "type": "java",
+            "name": "OrderApp",
+            "request": "launch",
+            "mainClass": "com.ewolff.microservice.order.OrderApp",
+            "projectName": "microservice-kafka-order"
+        },
+        {
+            "type": "java",
+            "name": "OrderTestApp",
+            "request": "launch",
+            "mainClass": "com.ewolff.microservice.order.OrderTestApp",
+            "projectName": "microservice-kafka-order"
+        },
+        {
+            "type": "java",
+            "name": "ShippingApp",
+            "request": "launch",
+            "mainClass": "com.ewolff.microservice.shipping.ShippingApp",
+            "projectName": "microservice-kafka-shipping"
+        },
+        {
+            "type": "java",
+            "name": "ShippingTestApp",
+            "request": "launch",
+            "mainClass": "com.ewolff.microservice.shipping.ShippingTestApp",
+            "projectName": "microservice-kafka-shipping"
+        }
+    ]
+}
