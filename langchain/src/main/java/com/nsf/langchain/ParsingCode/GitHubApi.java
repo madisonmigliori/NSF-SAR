@@ -82,7 +82,7 @@ public class GitHubApi {
                         curr.addChild(curr, NewNode);
                     }
                 } else {
-                    System.out.println("Expected JSON array but got object.");
+                    System.out.println("Invalid Github Repo :(");
                 }
             }
 
