@@ -1,17 +1,17 @@
 package com.nsf.langchain.service;
 
-import com.nsf.langchain.client.EmbeddingClient;
-import com.nsf.langchain.utils.RepoUtils;
-import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.chroma.ChromaEmbeddingStore;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.List;
+import com.nsf.langchain.client.EmbeddingClient;
+import com.nsf.langchain.utils.RepoUtils;
+
+import dev.langchain4j.store.embedding.chroma.ChromaEmbeddingStore;
 
 @Service
 public class IngestionService {
