@@ -1,21 +1,29 @@
 package com.nsf.langchain;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 
 import dev.langchain4j.store.embedding.chroma.ChromaEmbeddingStore;
 
 @SpringBootTest
 public class LangchainApplicationTests {
 
-    // This mocks the bean that tries to connect to Chroma
-    @MockBean
-    private ChromaEmbeddingStore chromaEmbeddingStore;
 
     @Test
     void contextLoads() {
-        // We’re just checking that the Spring context starts up.
-        // This test is intentionally minimal.
+       
     }
+
+
+    @TestConfiguration
+public class MockChromaConfig {
+    @Bean
+    public ChromaEmbeddingStore chromaEmbeddingStore() {
+        return Mockito.mock(ChromaEmbeddingStore.class);
+    }
+}
+
 }

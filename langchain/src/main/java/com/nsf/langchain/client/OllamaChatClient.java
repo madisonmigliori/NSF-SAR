@@ -3,16 +3,10 @@ package com.nsf.langchain.client;
 import java.io.IOException;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 @Component
 public class OllamaChatClient implements ChatClient {
@@ -29,20 +23,24 @@ public class OllamaChatClient implements ChatClient {
     @Override
     public String chat(String prompt) throws IOException {
         Map<String, Object> body = Map.of(
-            "model", "llama3.2", //maybe 
-            "prompt", prompt
+                "model", "llama3.2",
+                "prompt", prompt
         );
 
         Request req = new Request.Builder()
-                .url(ollamaUrl + "/api/chat") 
-                .post(RequestBody.create(mapper.writeValueAsString(body), MediaType.get("application/json")))
+                .url(ollamaUrl + "/api/chat")
+                .post(RequestBody.create(
+                        mapper.writeValueAsString(body),
+                        MediaType.get("application/json")
+                ))
                 .build();
 
         try (Response res = http.newCall(req).execute()) {
-            if (!res.isSuccessful()) throw new IOException("Ollama request failed");
-
+            if (!res.isSuccessful()) {
+                throw new IOException("Ollama request failed with code: " + res.code());
+            }
             String json = res.body().string();
-            return mapper.readTree(json).get("response").asText();  // adjust based on actual Ollama output
+            return mapper.readTree(json).get("response").asText();
         }
     }
 }

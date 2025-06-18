@@ -1,5 +1,7 @@
 package com.nsf.langchain.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,12 +15,24 @@ import com.nsf.langchain.service.IngestionService;
 @RequestMapping("/api/repos")
 public class RepoController {
 
+    private static final Logger log = LoggerFactory.getLogger(RepoController.class);
+
     @Autowired
     private IngestionService ingestionService;
 
+   
     @PostMapping("/ingest")
-    public ResponseEntity<String> ingest(@RequestParam String gitUrl) throws Exception {
-        ingestionService.ingestRepo(gitUrl);
-        return ResponseEntity.ok("Ingested " + gitUrl);
+    public ResponseEntity<String> ingest(@RequestParam String gitUrl) {
+        try {
+            ingestionService.ingestRepo(gitUrl);
+            return ResponseEntity.ok("Ingestion started for " + gitUrl);
+        } catch (Exception e) {
+            log.error("Failed to ingest repo {}", gitUrl, e);
+            return ResponseEntity
+                    .status(500)
+                    .body("Error ingesting repo: " + e.getMessage());
+        }
     }
+
+    
 }

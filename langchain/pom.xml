@@ -27,7 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>24</java.version>
+		<java.version>21</java.version>
 		<spring-ai.version>1.0.0</spring-ai.version>
 		
 	</properties>
@@ -36,23 +36,16 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-
-    <!-- Enables integration with Ollama for local LLM hosting -->
     <dependency>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-ollama</artifactId>
         <version>1.0.0-alpha1</version>
     </dependency>
-
-
-	<!-- LangChain4j provides a Spring Boot starter for auto-configuring AI Services, RAG, Tools etc. -->
     <dependency>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-spring-boot-starter</artifactId>
         <version>1.0.0-alpha1</version>
     </dependency>
-
-    <!-- The AI Service can stream response token-by-token when using the Flux<String>. For this, please import langchain4j-reactor module -->
     <dependency>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-reactor</artifactId>
@@ -66,10 +59,23 @@
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-starter-model-ollama</artifactId>
 		</dependency>
+
+<dependency>
+  <groupId>org.springframework.ai</groupId>
+  <artifactId>spring-ai-chroma-store</artifactId>
+</dependency>
 		<dependency>
-			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-starter-vector-store-chroma</artifactId>
-		</dependency>
+  <groupId>org.springframework.ai</groupId>
+  <artifactId>spring-ai-starter-vector-store-chroma</artifactId>
+  <version>1.0.0</version> 
+</dependency>
+<dependency>
+  <groupId>org.springframework.ai</groupId>
+  <artifactId>spring-ai-starter-model-ollama</artifactId>
+  <version>1.0.0</version>
+</dependency>
+
+
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -107,7 +113,7 @@
 			<dependency>
 				<groupId>com.squareup.okhttp3</groupId>
 				<artifactId>okhttp</artifactId>
-				<version>4.12.0</version> <!-- or latest -->
+				<version>4.12.0</version> 
 			</dependency>
 		
 			<dependency>
@@ -140,18 +146,24 @@
 				<groupId>org.testcontainers</groupId>
 				<artifactId>chromadb</artifactId>
 			</dependency>
-			
 	
-	</dependencies>
+	
+   <dependency>
+     <groupId>com.amazonaws</groupId>
+     <artifactId>aws-java-sdk-core</artifactId>
+     <version>1.11.615</version>
+   </dependency>
+ </dependencies>
 	<dependencyManagement>
 		<dependencies>
+			
 			<dependency>
-				<groupId>org.springframework.ai</groupId>
-				<artifactId>spring-ai-bom</artifactId>
-				<version>${spring-ai.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-bom</artifactId>
+      <version>1.0.0</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
 		</dependencies>
 	</dependencyManagement>
 

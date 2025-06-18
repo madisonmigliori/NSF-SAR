@@ -19,19 +19,21 @@ public class ChatController {
     @Autowired
     private RagService ragService;
 
-    //Takes in the Questions and sends it to the Ollama Model
+ 
     @PostMapping
     public ResponseEntity<Answer> chat(@RequestBody Question q) {
         try {
             String response = ragService.answer(q.getText());
             return ResponseEntity.ok(new Answer(response));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
+            e.printStackTrace();
+            return ResponseEntity
+                    .internalServerError()
                     .body(new Answer("Sorry, I couldn't process your question right now."));
         }
     }
 
-    @GetMapping("/")
+    @GetMapping("/ping")
     public String ping() {
         return "RAG assistant is running.";
     }
