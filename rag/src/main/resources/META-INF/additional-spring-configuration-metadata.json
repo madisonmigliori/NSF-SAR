@@ -1,0 +1,17 @@
+{"properties": [
+  {
+    "name": "app.repos-dir",
+    "type": "java.lang.String",
+    "description": "A description for 'app.repos-dir'"
+  },
+  {
+    "name": "app.chroma-endpoint",
+    "type": "java.lang.String",
+    "description": "A description for 'app.chroma-endpoint'"
+  },
+  {
+    "name": "app.ollama-endpoint",
+    "type": "java.lang.String",
+    "description": "A description for 'app.ollama-endpoint'"
+  }
+]}

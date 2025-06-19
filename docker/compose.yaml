@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  rag:
+    image: 'nsf/rag:latest'
+    ports: 
+      - '8080:8080'
+    depends_on:
+      - chroma
+      - ollama
+    environment:
+      - SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST=chroma
+      - SPRING_AI_VECTORSTORE_CHROMA_CLIENT_PORT=8000
+      - SPRING_AI_VECTORSTORE_CHROMA_TENANT=default_tenant
+      - SPRING_AI_VECTORSTORE_CHROMA_DATABASE_NAME=default_database
+      - SPRING_AI_VECTORSTORE_CHROMA_COLLECTION_NAME=collection
+      - SPRING_AI_VECTORSTORE_CHROMA_INITIALIZE_SCHEMA=true
+      - SPRING_AI_OLLAMA_EMBEDDING_OPTIONS_MODEL=nomic-embed-text
+      - SPRING_AI_OLLAMA_CHAT_OPTIONS_MODEL=llama3:instruct
+      - APP_OLLAMA_ENDPOINT=http://ollama:11434
+      - APP_CHROMA_ENDPOINT=http://chroma:8000
+      - APP_REPOS_DIR=./repos
+
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    ports:
+      - '8000:8000'
+    volumes:
+      - chroma_data:/chroma/.chroma  
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - '11434:11434'
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  ollama_data:
+  chroma_data:
