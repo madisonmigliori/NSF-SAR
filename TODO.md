@@ -1,0 +1,11 @@
+
+- [X] Docker File
+- [ ] Document Ingestion to train model 
+- [ ] Tenant for each chat
+- [ ] Collection for repo
+- [ ] Prompt the user 
+- [ ] Needs to check if there is a duplicate repo 
+- [ ] Needs to check if the repo exists (maybe needing collection/repoid)
+- [ ] Greeting from the LLM 
+- [ ] Easier Prompt instead of the curl application
+- [ ] Bound the model to only answer questions about 
