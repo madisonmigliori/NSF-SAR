@@ -1,22 +1,14 @@
 package com.nsf.langchain.ParsingCode;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nsf.langchain.ParsingCode.GitToken.GetToken;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.net.*;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Scanner;
-import java.util.Set;
 import java.util.Stack;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nsf.langchain.ParsingCode.GitToken.GetToken;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Base64;
-import java.nio.charset.StandardCharsets;
-import com.nsf.rag.ParsingCode.GitToken.GetToken;
 
 public class GitHubApi {
 
@@ -53,7 +45,7 @@ public class GitHubApi {
             BinaryTreeNode root = new BinaryTreeNode(repo, "repo", "", false);
             tovisit.push(root);
 
-            Set<BinaryTreeNode> InboundCheck = new HashSet<>();
+            // Set<BinaryTreeNode> InboundCheck = new HashSet<>();
 
             while(!tovisit.isEmpty()){
                 BinaryTreeNode curr = tovisit.pop();
@@ -99,23 +91,31 @@ public class GitHubApi {
 
                                 client = HttpClient.newHttpClient();
                                 response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+                                
                                 mapper = new ObjectMapper();
                                 jsonNode = mapper.readTree(response.body());
-                                
-                                String content = jsonNode.get("content").asText().replace("\n", "");
-                                byte[] decodedBytes = Base64.getDecoder().decode(content);
-                                // String decodedString = new String(decodedBytes, StandardCharsets.UTF_8);
-                                mapper = new ObjectMapper();
-                                JsonNode jsonNode2 = mapper.readTree(new String(decodedBytes, StandardCharsets.UTF_8));
 
-                                if(jsonNode.isArray()){
-                                    for (JsonNode node2 : jsonNode2) {
-                                        node2.get("name");
-                                    }
-                                }
+            //********** TRYING TO INTERPRET THE DOCKER FILE FOR INBOUND/OUTBOUND ITEMS **********************
+                                
+                                // String content = jsonNode.get("content").asText().replace("\n", "");
+
+                                // byte[] decodedBytes = Base64.getDecoder().decode(content);
+
+                                // String decodedString = new String(decodedBytes, StandardCharsets.UTF_8);
+                                // System.out.println(decodedString);
+                                // mapper = new ObjectMapper();
+                                // JsonNode jsonNode2 = mapper.readTree(new String(decodedBytes, StandardCharsets.UTF_8));
+
+                                // if(jsonNode.isArray()){
+                                //     for (JsonNode node2 : jsonNode2) {
+                                //         node2.get("name");
+                                //     }
+                                // }
+
                                 // System.out.println(apiUrl+"/" + NewNode.name);
                                 // System.out.println(jsonNode.get(name));
+
+            //**************************************************************************************************************** */
                             }
                         }
                         curr.addChild(curr, NewNode);

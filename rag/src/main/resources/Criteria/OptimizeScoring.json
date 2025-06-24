@@ -3,7 +3,7 @@
     {
       "category": ["Scalability"],
       "description": "Scaling individual components independently improves efficiency and response to demand.",
-      "weight": 0.50,
+      "weight": 0.34,
       "sub_metrics": [
         {
           "name": "Horizontal Scalability",
@@ -33,7 +33,7 @@
       "category": ["Agility", "Autonomy"],
       "description": "Support for independent development, CI/CD, and fast feature delivery.",
       "score": "/100",
-      "weight": 0.20,
+      "weight": 0.33,
       "sub_metrics": [
         {
           "name": "Independent Deployment",
@@ -73,7 +73,7 @@
     {
       "category": ["Fault Tolerance"],
       "description": "Ability to isolate and recover from failures.",
-      "weight": 0.30,
+      "weight": 0.33,
       "sub_metrics": [
         {
           "name": "Service Isolation",
