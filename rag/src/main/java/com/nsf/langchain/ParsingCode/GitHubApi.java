@@ -9,7 +9,7 @@ import java.util.Scanner;
 import java.util.Stack;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nsf.rag.ParsingCode.GitToken.GetToken;
+import com.nsf.langchain.ParsingCode.GitToken.GetToken;
 
 public class GitHubApi {
 
