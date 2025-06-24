@@ -34,6 +34,5 @@ build/
 .vscode/*
 
 ### Personal Token Information
-langchain/src/main/java/com/nsf/langchain/ParsingCode/GitToken/GetToken.java
-langchain/src/main/resources/nsf-sar.2025-06-12.pkcs8.pem
-langchain/src/main/resources/nsf-sar.2025-06-12.private-key.pem
+rag/src/main/resources/nsf-sar.2025-06-24.private-key.pem
+.env
