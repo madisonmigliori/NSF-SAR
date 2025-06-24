@@ -2,7 +2,7 @@
 - [X] Docker File
 - [ ] Document Ingestion to train model 
 - [ ] Tenant for each chat
-- [ ] Collection fo repo
+- [ ] Collection for repo
 - [ ] Prompt the user 
 - [ ] Needs to check if there is a duplicate repo 
 - [ ] Needs to check if the repo exist (maybe needing collection/repoid)
