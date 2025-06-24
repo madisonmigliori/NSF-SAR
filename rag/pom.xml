@@ -46,6 +46,12 @@
         <artifactId>langchain4j-spring-boot-starter</artifactId>
         <version>1.0.0-alpha1</version>
     </dependency>
+	<dependency>
+  <groupId>org.springframework.ai</groupId>
+  <artifactId>spring-ai-chroma-store</artifactId>
+  <version>1.0.0</version>
+</dependency>
+
     <dependency>
         <groupId>dev.langchain4j</groupId>
         <artifactId>langchain4j-reactor</artifactId>
@@ -69,12 +75,6 @@
   <groupId>com.auth0</groupId>
   <artifactId>java-jwt</artifactId>
   <version>4.4.0</version>
-</dependency>
-
-
-<dependency>
-  <groupId>org.springframework.ai</groupId>
-  <artifactId>spring-ai-chroma-store</artifactId>
 </dependency>
 		<dependency>
   <groupId>org.springframework.ai</groupId>
@@ -201,6 +201,11 @@
      <artifactId>aws-java-sdk-core</artifactId>
      <version>1.11.615</version>
    </dependency>
+   <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+
  </dependencies>
 	<dependencyManagement>
 		<dependencies>

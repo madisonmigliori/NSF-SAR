@@ -20,5 +20,4 @@ COPY --from=build /rag/target/rag-0.0.1-SNAPSHOT.jar /rag/rag.jar
 
 EXPOSE 8080
 
-USER non-root
 ENTRYPOINT ["java", "-jar", "/rag/rag.jar"]

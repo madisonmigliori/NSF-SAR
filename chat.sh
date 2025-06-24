@@ -1,46 +1,70 @@
 #!/bin/bash
 
-# Function to check if server is running
-function wait_for_server() {
-  echo "🔍 Checking if server is running..."
-  until curl -s --head http://localhost:8080/health | grep "200 OK" > /dev/null; do
-    echo "⚙️  Server not running. Trying to start it with Docker..."
-    docker compose up -d
-    echo "⏳ Waiting for server to start..."
-    sleep 5
-  done
-  echo "✅ Server is up and running!"
+command -v jq >/dev/null 2>&1 || {
+  echo "jq is not installed. Please install it to parse JSON responses."
+  exit 1
 }
 
-# Run server check
+echo " This script connects to your RAG backend, ingests a GitHub repo, and lets you chat with it!"
+
+function wait_for_server() {
+  echo "Checking if server is running..."
+  docker compose up -d > /dev/null 2>&1
+
+  until [[ "$(curl -s http://localhost:8080/actuator/health | jq -r .status)" == "UP" ]]; do
+    echo "⏳ Waiting for server to be healthy..."
+    sleep 5
+  done
+
+  echo "Server is up and running!"
+}
+
 wait_for_server
 
-# Ask for repo URL
 while true; do
-  read -rp "🔗 Enter GitHub repo URL: " repoUrl
+  read -rp "Enter GitHub repo URL: " repoUrl
   if [[ -z "$repoUrl" || ! "$repoUrl" =~ \.git$ ]]; then
-    echo "❗ Please enter a valid GitHub URL ending in .git"
+    echo "Please enter a valid GitHub URL ending in .git"
     continue
   fi
 
   repoId=$(echo "$repoUrl" | sed -E 's|.*/([^/]+)/([^/]+)\.git|\1-\2|')
-
   if [[ -z "$repoId" ]]; then
-    echo "❗ Could not extract repo ID. Make sure the URL is like https://github.com/user/repo.git"
+    echo "Could not extract repo ID. Make sure the URL is like https://github.com/user/repo.git"
   else
-    echo "📦 Repo ID extracted as: $repoId"
+    echo "Repo ID extracted as: $repoId"
     break
   fi
 done
 
-# Chat loop
-echo "💬 Ask your question (type /bye to exit):"
+
+encodedUrl=$(jq -rn --arg url "$repoUrl" '$url|@uri')
+
+
+echo "📥 Ingesting the repository..."
+response=$(curl -s -X POST "http://localhost:8080/api/repos/ingest?gitUrl=$encodedUrl")
+
+
+if echo "$response" | jq empty >/dev/null 2>&1; then
+  echo "$response" | jq -r '.message // .status // "✅ Ingestion request sent."'
+else
+  echo "✅ $response"
+fi
+
+
+history_file="chat_history_${repoId}.log"
+touch "$history_file"
+echo "📝 Chat history will be saved to $history_file"
+
+echo "Ask your question (type /bye to exit):"
 while true; do
   read -rp "> " question
   if [[ "$question" == "/bye" ]]; then
-    echo "👋 Goodbye!"
+    echo "Goodbye!"
     break
   fi
+
+
 
   curl -s -X POST http://localhost:8080/api/chat \
     -H "Content-Type: application/json" \
