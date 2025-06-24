@@ -42,8 +42,8 @@ public class RagService {
             docs = vectorStore.similaritySearch(
                 SearchRequest.builder()
                     .query(question)
-                    .topK(5)
-                    .similarityThreshold(0.5)
+                    .topK(10)
+                    .similarityThreshold(0.3)
                     .build()
             );
         } catch (Exception e) {
@@ -62,6 +62,7 @@ public class RagService {
 
         List<Message> messages = Arrays.asList(
             new SystemMessage("""
+                You are a friendly assistant. 
                 You are a senior software architect assistant. 
 
                 You must identify the architecture patterns, with a focus on microservice architecture. Display the architecture and the bounded context diagram.
@@ -72,7 +73,7 @@ public class RagService {
 
                 Always explain your reasoning and suggest patterns like service discovery, API gateways, event-driven communication, etc.
 
-                Identify section of the code where it needs to be improved or refactored. Provide a generated image of the architecture. Only answer questions using the provided context. If the context is not enough, say "I don’t have enough information to answer that." Do not hallucinate or assume.
+                Identify section of the code where it needs to be improved or refactored. Provide a generated image of the architecture. Only answer questions using the provided context. If the context is not enough, say "I don’t have enough information to answer that." Do not hallucinate.
             """),
             new UserMessage("Here is the context:\n" + context + "\n\nNow, based on that, answer this question:\n" + question)
         );

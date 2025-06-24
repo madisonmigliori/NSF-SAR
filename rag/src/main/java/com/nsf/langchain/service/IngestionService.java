@@ -29,6 +29,9 @@ public class IngestionService {
     @Value("${app.repos-dir}")
     private String baseDir;
 
+    @Value("${app.allowed-extensions}")
+    private String allowedExtensions;
+
     public void ingestRepo(String gitUrl) throws Exception {
         String repoId = RepoUtils.extractRepoId(gitUrl);
         Path repoFolder = Paths.get(baseDir, repoId);
@@ -54,10 +57,16 @@ public class IngestionService {
             files
                 .filter(Files::isRegularFile)
                 .filter(path -> !path.toString().contains(".git"))
+                .filter(this::hasAllowedExtension)
                 .forEach(path -> processFile(repoId, repoFolder, path));
         }
 
         log.info("Finished ingestion for repo: {}", repoId);
+    }
+
+    private boolean hasAllowedExtension(Path path) {
+        String ext = com.google.common.io.Files.getFileExtension(path.toString()).toLowerCase();
+        return List.of(allowedExtensions.split(",")).contains("." + ext);
     }
 
     public void ingestLocalPdf(String repoId, Path path) {
@@ -87,6 +96,7 @@ public class IngestionService {
             return;
         }
 
+        
         List<String> chunks = TextUtils.chunkText(text, 1000, 200);
         String safePath = repoFolder.relativize(path).toString().replaceAll("[/\\\\]", "_");
 
