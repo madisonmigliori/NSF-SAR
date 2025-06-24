@@ -97,7 +97,10 @@ public class IngestionService {
         }
 
         
-        List<String> chunks = TextUtils.chunkText(text, 1000, 200);
+        List<String> chunks = TextUtils.chunkText(text, 1000, 200)
+            .stream()
+            .filter(chunk -> chunk != null && chunk.trim().length() >= 20)
+            .toList();
         String safePath = repoFolder.relativize(path).toString().replaceAll("[/\\\\]", "_");
 
         for (int i = 0; i < chunks.size(); i++) {
