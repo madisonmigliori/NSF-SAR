@@ -20,18 +20,31 @@ public class GitHubApi {
         String ProjectURL = scanner.nextLine();
 
         try {
+            while (ProjectURL.contains("git@github.com") || ProjectURL.contains("gh repo clone")) {
+                if (ProjectURL.contains("git@github.com")) {
+                    System.out.println("SSH Keys Not Accepted.. Retry?");
+                } else if (ProjectURL.contains("gh repo clone")) {
+                    System.out.println("GitHub CLIs Not Accepted.. Retry?");
+                }
+
+                System.out.print("Enter Public GitHub Repo URL: ");
+                ProjectURL = scanner.nextLine();
+            }
+
             URL GitURL = new URI(ProjectURL).toURL();
 
-            String[] GitSections = GitURL.getPath().split("/");
+            String GitClean = GitURL.getPath().split(".git")[0];
+            String[] GitSections = GitClean.split("/");
 
             //making sure github url
-            if(!GitURL.getHost().equals("github.com") || GitURL.getPath().split("/").length == 2) { //
+            while(!GitURL.getHost().equals("github.com") || GitSections.length == 2) { //
                 System.out.println("Github repo not found.. Retry?");
 
                 System.out.print("Enter Public GitHub Repo URL: ");
                 ProjectURL = scanner.nextLine();
                 GitURL = new URI(ProjectURL).toURL();
-                GitSections = GitURL.getPath().split("/");
+                GitClean = GitURL.getPath().split(".git")[0];
+                GitSections = GitClean.split("/");
             }
 
             scanner.close();
