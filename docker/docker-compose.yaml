@@ -1,7 +1,7 @@
 
 services:
   rag:
-    image: 'madisonmigliori444/rag'
+    image: 'rag:latest'
     ports: 
       - '8080:8080'
     depends_on:

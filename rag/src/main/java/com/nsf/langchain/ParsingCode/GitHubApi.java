@@ -9,6 +9,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Scanner;
 import java.util.Stack;
+import java.util.Base64;
 
 public class GitHubApi {
 
@@ -55,15 +56,24 @@ public class GitHubApi {
             String token = new GetToken().getToken();
             
             Stack<BinaryTreeNode> tovisit= new Stack<>();
-            BinaryTreeNode root = new BinaryTreeNode(repo, "repo", "", false);
+            
+            String apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents";
+            BinaryTreeNode root = new BinaryTreeNode(repo, "repo", apiUrl, false);
             tovisit.push(root);
 
-            // Set<BinaryTreeNode> InboundCheck = new HashSet<>();
+            HttpClient client = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .build();
+            
+            HttpResponse<String> response;
+            JsonNode jsonNode;
+            ObjectMapper mapper = new ObjectMapper();
 
             while(!tovisit.isEmpty()){
                 BinaryTreeNode curr = tovisit.pop();
+                apiUrl = curr.path;
 
-                String apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents/" + curr.path;
+                // String apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents/" + curr.path;
                 
                 HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(apiUrl))
@@ -73,63 +83,49 @@ public class GitHubApi {
                     .GET()
                     .build();
 
-                HttpClient client = HttpClient.newHttpClient();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode jsonNode = mapper.readTree(response.body());
+                response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                jsonNode = mapper.readTree(response.body());
 
                 if (jsonNode.isArray()) {
                     for (JsonNode node : jsonNode) {
                         String name = node.get("name").asText();
-                        String path = node.get("path").asText();
+                        // String path = node.get("path").asText();
                         String type = node.get("type").asText();
+                        String url = node.get("url").asText();
 
-                        BinaryTreeNode NewNode = new BinaryTreeNode(name, type, path, false);
+                        BinaryTreeNode NewNode = new BinaryTreeNode(name, type, url, false);
 
                         if (type.equals("dir")){
                             tovisit.push(NewNode);
                         }else if(!type.equals("file")){
                             System.out.println("******************** NEW TYPE DISCOVERED *********************");
                         }else{ // else assume type = file 
-                            if(NewNode.name.contains("Docker") || NewNode.name.contains("docker")){
-                                apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents/" + path;
-                                request = HttpRequest.newBuilder()
-                                    .uri(URI.create(apiUrl))
-                                    .header("Accept", "application/vnd.github+json")
-                                    .header("X-GitHub-Api-Version", "2022-11-28")
-                                    .header("Authorization", "Bearer " + token) 
-                                    .GET()
-                                    .build();
+                            // apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents/" + path;
+                            String download_url = node.get("download_url").asText();
 
-                                client = HttpClient.newHttpClient();
-                                response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                                
-                                mapper = new ObjectMapper();
-                                jsonNode = mapper.readTree(response.body());
+                            request = HttpRequest.newBuilder()
+                                .uri(URI.create(download_url))
+                                .header("Accept", "application/vnd.github+json")
+                                .header("X-GitHub-Api-Version", "2022-11-28")
+                                .header("Authorization", "Bearer " + token) 
+                                .GET()
+                                .build();
 
-            //********** TRYING TO INTERPRET THE DOCKER FILE FOR INBOUND/OUTBOUND ITEMS **********************
-                                
-                                // String content = jsonNode.get("content").asText().replace("\n", "");
+                            response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-                                // byte[] decodedBytes = Base64.getDecoder().decode(content);
+                            // Parse JSON using Jackson
+                            // JsonNode root_one = mapper.readTree(response.body());
+                            // String content = root_one.get("download_url").asText();
 
-                                // String decodedString = new String(decodedBytes, StandardCharsets.UTF_8);
-                                // System.out.println(decodedString);
-                                // mapper = new ObjectMapper();
-                                // JsonNode jsonNode2 = mapper.readTree(new String(decodedBytes, StandardCharsets.UTF_8));
-
-                                // if(jsonNode.isArray()){
-                                //     for (JsonNode node2 : jsonNode2) {
-                                //         node2.get("name");
-                                //     }
-                                // }
-
-                                // System.out.println(apiUrl+"/" + NewNode.name);
-                                // System.out.println(jsonNode.get(name));
-
-            //**************************************************************************************************************** */
+                            if(!response.body().contains("�")){
+                                System.out.println("Decoded content\n " + apiUrl + " \n");
+                                System.out.println(response.body());
                             }
+                            // Extract and decode content
+                            // String base64Content = root_one.get("content").asText();
+                            // base64Content = base64Content.replaceAll("\\s", "").replaceAll("\\n", " "); // Remove all whitespace/newlines
+                            // byte[] decodedBytes = Base64.getDecoder().decode(base64Content);
+                            // String decodedContent = new String(decodedBytes);
                         }
                         curr.addChild(curr, NewNode);
                     }

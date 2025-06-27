@@ -1,0 +1,58 @@
+{
+  "criteria": [
+    {
+      "name": "Scalability",
+      "description": "Each microservice should operate independently, enabling individual components to be scaled without affecting the entire system.",
+      "guidance": "Flag files with layers of dependencies",
+      "patterns": []
+    },
+    {
+      "name": "Technology Diversity",
+      "description": " Different microservices can be developed using different technologies, enabling teams to choose the best tools for each task.",
+      "guidance": "Recommend if a different technology optimize the task for a specific file",
+      "patterns": []
+    },
+    {
+      "name": "Language Agnosticism",
+      "description": "Architecture should allow developers to use their existing skills and programming languages without requiring standardization across all services.",
+      "guidance": "Identify where more optimal technologies can be recommended for the files' task",
+      "patterns": []
+    },
+    {
+      "name": "Cloud Accessibility",
+      "description": "Cloud-based microservices allow applications to be accessible from any internet-connected device, regardless of platform.",
+      "guidance": "Check for deployment to cloud platforms (e.g., AWS, Azure, GCP) and use of web-accessible endpoints.",
+      "patterns": []
+    },
+    {
+      "name": "Technology Stack Optimization",
+      "description": "Each service should use the best-suited technology stack to increase team productivity and code quality.",
+      "guidance": "Evaluate if each microservice selects technologies appropriate for its purpose rather than enforcing a uniform stack.",
+      "patterns": []
+    },
+    {
+      "name": "Resilience",
+      "description": "Failure in one service should not impact others, ensuring the system continues to operate under partial failure.",
+      "guidance": "Look for circuit breakers, retries, fallbacks, and isolated service deployment in the architecture.",
+      "patterns": []
+    },
+    {
+      "name": "Agility and Autonomy",
+      "description": "Architecture should support frequent and independent updates by separate teams.",
+      "guidance": "Look for team-specific ownership of services, versioned APIs, and rapid deployment strategies.",
+      "patterns": []
+    },
+    {
+      "name": "Cost-Effectiveness",
+      "description": "Efficient resource utilization through containers or serverless infrastructure can reduce operating costs.",
+      "guidance": "Identify use of Docker, Kubernetes, or FaaS platforms, and note any resource optimization strategies.",
+      "patterns": []
+    },
+    {
+      "name": "Reusability",
+      "description": "Microservices should be shareable across applications or domains, such as shared login or payment modules.",
+      "guidance": "Check if services are modular, well-documented, and designed to be reused across multiple areas of the application.",
+      "patterns": []
+    }
+  ]
+}
