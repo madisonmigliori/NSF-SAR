@@ -71,7 +71,7 @@
             "common implementations": "Implemented as part of API Gateway solutions; can be combined with bulkhead, circuit breaker, retries, and timeouts; may offload aggregation logic to a separate service behind the gateway."
         },
         {
-            "name": "Publisher / Subscriber ",
+            "name": "Publisher/Subscriber ",
             "description": "Enables loose coupling through asynchronous communication via message brokers. Publishers emit events without knowing subscribers, which receive messages asynchronously based on their subscriptions.",
             "advantage": "Supports scalability and flexibility by decoupling senders and receivers; enables asynchronous processing and real-time event distribution.",
             "disadvantage": "Requires reliable and scalable message brokers; subscribers must handle out-of-order or duplicate messages; eventual consistency challenges.",
@@ -365,13 +365,6 @@
             "advantage": "Responsive to actual workload; handles asynchronous loads better.",
             "disadvantage": "More complex to configure; may require custom metrics or event handlers.",
             "common implementations": "KEDA for Kubernetes, AWS Lambda + SQS-based triggers"
-        },
-        {
-            "name": "Authentication Gateway",
-            "description": "Central point to authenticate user identity before requests reach downstream services.",
-            "advantage": "Centralized control and simplified backend services.",
-            "disadvantage": "Single point of failure or bottleneck if not properly managed.",
-            "common implementations": "OAuth Proxy, IdentityServer, AWS Cognito + API Gateway"
         },
         {
             "name": "Token-Based Authentication",
