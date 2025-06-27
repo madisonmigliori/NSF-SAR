@@ -13,6 +13,8 @@ import org.springframework.ai.document.Document;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays; 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,25 +26,37 @@ public class RagService {
 
     private final VectorStore vectorStore;
     private final ChatModel chatModel;
+    private final IngestionService ingestionService;
 
-    public RagService(VectorStore vectorStore, ChatModel chatModel) {
+    public RagService(VectorStore vectorStore, ChatModel chatModel, IngestionService ingestionService) {
         this.vectorStore = vectorStore;
         this.chatModel = chatModel;
+        this.ingestionService = ingestionService;
     }
 
 
     public String answer(String question, String repoId) {
         List<Document> docs;
+        Path jsonPath = Paths.get("/Users/madisonmigliori/Documents/NSF/NSF-SAR/rag/doc");
+
 
         if (repoId == null || repoId.isBlank()) {
             throw new IllegalArgumentException("Missing repoId for context search.");
-        }        
+        }
         try {
-            log.info("Searching vector store for repoId:", repoId);
+            ingestionService.ingestJson(jsonPath, repoId);
+            log.info("JSON ingestion completed for file: {}", jsonPath);
+        } catch (Exception e) {
+            log.error("Failed to ingest JSON before answering:", e);
+            return "An error occurred while ingesting the JSON context. Please check the file and try again.";
+        }    
+        try {
+            log.info("Searching vector store for repoId: {}", repoId);
             docs = vectorStore.similaritySearch(
                 SearchRequest.builder()
                     .query(question)
                     .topK(10)
+                    .filterExpression(repoId)
                     .similarityThreshold(0.3)
                     .build()
             );
@@ -60,24 +74,29 @@ public class RagService {
                              .map(Document::getText)
                              .collect(Collectors.joining("\n---\n"));
 
-        List<Message> messages = Arrays.asList(
-            new SystemMessage("""
-                You are a friendly assistant. 
-                You are a senior software architect assistant. 
-
-                You must identify the architecture patterns, with a focus on microservice architecture. Display the architecture and the bounded context diagram.
-
-                Help the user design robust, scalable, and secure microservice-based architectures. 
-
-                Identify microservice smells or any bad coding practices in the code. 
-
-                Always explain your reasoning and suggest patterns like service discovery, API gateways, event-driven communication, etc.
-
-                Identify section of the code where it needs to be improved or refactored. Provide a generated image of the architecture. Only answer questions using the provided context. If the context is not enough, say "I don’t have enough information to answer that." Do not hallucinate.
-            """),
-            new UserMessage("Here is the context:\n" + context + "\n\nNow, based on that, answer this question:\n" + question)
-        );
-
+                             List<Message> messages = Arrays.asList(
+                                new SystemMessage("""
+                                    You are a friendly and expert senior software architect assistant.
+                            
+                                    Your job is to:
+                                    - Identify the architecture patterns in the provided context, with a focus on microservice architecture.
+                                    - Display the architecture and bounded context diagram (describe it in text or use internal tools, but DO NOT provide external image URLs or hyperlinks).
+                                    - Help the user design robust, scalable, and secure microservice-based architectures.
+                                    - Identify any microservice anti-patterns, smells, or bad coding practices in the code.
+                                    - Always explain your reasoning.
+                                    - Recommend patterns like service discovery, API gateways, event-driven communication, etc.
+                                    - Identify specific code sections needing improvement or refactoring.
+                            
+                                    IMPORTANT RULES:
+                                    - Only answer using the provided context.
+                                    - Do not include any external URLs, hyperlinks, or references to third-party websites.
+                                    - If the context includes external links (e.g., images from Imgur), DO NOT include them in your response. Instead, summarize their content in text.
+                                    - If you don’t have enough context, say: "I don’t have enough information to answer that. Please ask questions about the given repository."
+                                    - DO NOT hallucinate.
+                                """),
+                                new UserMessage("Here is the context:\n" + context + "\n\nNow, based on that, answer this question:\n" + question)
+                            );
+                            
         ChatResponse response = chatModel.call(new Prompt(messages));
         return response.getResult().getOutput().getText();
     }

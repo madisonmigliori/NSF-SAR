@@ -1,11 +1,21 @@
 
 - [X] Docker File
-- [ ] Document Ingestion to train model 
 - [ ] Tenant for each chat
-- [ ] Collection for repo
-- [ ] Prompt the user 
+- [X] Collection for repo
+- [X] Prompt the user (scanner)
 - [ ] Needs to check if there is a duplicate repo 
-- [ ] Needs to check if the repo exists (maybe needing collection/repoid)
+- [X] Needs to check if the repo exists (maybe needing collection/repoid)
 - [ ] Greeting from the LLM 
-- [ ] Easier Prompt instead of the curl application
-- [ ] Bound the model to only answer questions about 
+- [X] Easier Prompt instead of the curl application
+- [X] Bound the model to only answer questions about 
+- [ ] Metrics of Model (Ollama-benchmark)
+- [ ] Display a image, png of the architecture
+- [ ] Batch size at least 50 repos
+- [ ] Use JUnit Test 
+- [ ] Connect SonarQube for vulernabilities
+- [ ] Build JSON Ingestor
+- [ ] Content for JSON 
+- [ ] Build Presentation
+- [ ] Load Balancer for multiple users
+- [ ] Embed a Gateway server for different routing 
+

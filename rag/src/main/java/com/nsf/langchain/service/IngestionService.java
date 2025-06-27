@@ -1,28 +1,39 @@
 package com.nsf.langchain.service;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.apache.tomcat.util.json.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.configurationprocessor.json.JSONArray;
+import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.stereotype.Service;
 
+import com.nsf.langchain.git.GitHubApi;
+import com.nsf.langchain.git.token.GetToken;
 import com.nsf.langchain.utils.GitUtils;
 import com.nsf.langchain.utils.RepoUtils;
 import com.nsf.langchain.utils.TextUtils;
 import com.nsf.langchain.utils.PdfUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nsf.langchain.git.BinaryTreeNode;
 
 @Service
 public class IngestionService {
 
     private static final Logger log = LoggerFactory.getLogger(IngestionService.class);
-
+    
     @Autowired
     private VectorStore vectorStore;
 
@@ -31,6 +42,7 @@ public class IngestionService {
 
     @Value("${app.allowed-extensions}")
     private String allowedExtensions;
+
 
     public void ingestRepo(String gitUrl) throws Exception {
         String repoId = RepoUtils.extractRepoId(gitUrl);
@@ -64,10 +76,51 @@ public class IngestionService {
         log.info("Finished ingestion for repo: {}", repoId);
     }
 
-    private boolean hasAllowedExtension(Path path) {
-        String ext = com.google.common.io.Files.getFileExtension(path.toString()).toLowerCase();
-        return List.of(allowedExtensions.split(",")).contains("." + ext);
+
+    public void ingestJson(Path path, String repoId) {
+        log.info("Starting json processing for ingestion: {}", path);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        
+        try{
+            JsonNode rootNode = objectMapper.readTree(path.toFile());
+            List<Document> documents = new ArrayList<>();
+
+            flattenJson(rootNode, "", documents, path.getFileName().toString(), repoId);
+            
+            if (!documents.isEmpty()) {
+                vectorStore.add(documents);
+                log.info("Ingested {} JSON nodes from '{}'", documents.size(), path.getFileName());
+            } else {
+                log.warn("No valid JSON nodes found for ingestion in file: {}", path);
+            }
+        } catch (IOException e) {
+            log.error("Failed to ingest JSON '{}': {}", path, e.getMessage());
+        }
+
+          
+    
     }
+
+
+    private void flattenJson(JsonNode node, String pathPrefix, List<Document> documents, String fileName, String repoId){
+        if(node.isObject()){
+            node.fieldNames().forEachRemaining(field -> {
+                String newPath = pathPrefix.isEmpty() ? field : pathPrefix + "/" + field;
+                flattenJson(node.get(field), newPath, documents, fileName, repoId);
+
+            });
+        } else if (node.isArray()){
+            for (int i = 0; i < node.size(); i++){
+                flattenJson(node.get(i), pathPrefix + "[" + i +  "]", documents, fileName, repoId);
+            }
+        } else {
+            String text = "Key: " + pathPrefix + ", Value:" + node.asText();
+            Document doc = Document.builder().text(text).metadata("file", fileName).metadata("repo", repoId).build();
+            documents.add(doc);
+        }
+    }
+
 
     public void ingestLocalPdf(String repoId, Path path) {
         try {
@@ -85,6 +138,43 @@ public class IngestionService {
             log.error("Failed to ingest PDF '{}': {}", path, e.getMessage());
         }
     }
+
+    public void ingestGitRepoAPI(String gitUrl) throws Exception {
+        GitHubApi repo = new GitHubApi();
+
+        String repoId = RepoUtils.extractRepoId(gitUrl);
+        BinaryTreeNode root = repo.inspectRepo(gitUrl);
+        List<String>filePaths = repo.flattenFilePaths(root);
+
+        String[] parts = gitUrl.split("/");
+        String user = parts[parts.length - 2];
+        String repoName = parts[parts.length - 1].replace(".git", "");
+
+        for (String path : filePaths) {
+            String content = repo.fetchFileContent(user, repoName, path);
+            if (content != null && content.length() >= 20) {
+                List<String> chunks = TextUtils.chunkText(content, 1000, 200);
+                for (String chunk : chunks) {
+                    Document doc = Document.builder()
+                            .text(chunk)
+                            .metadata("file", path)
+                            .metadata("repo", repoId)
+                            .build();
+                    vectorStore.add(List.of(doc));
+                }
+            }
+        }
+
+
+
+    }
+
+
+    private boolean hasAllowedExtension(Path path) {
+        String ext = com.google.common.io.Files.getFileExtension(path.toString()).toLowerCase();
+        return List.of(allowedExtensions.split(",")).contains("." + ext);
+    }
+
 
     private void processFile(String repoId, Path repoFolder, Path path) {
         log.debug("Reading file: {}", path);

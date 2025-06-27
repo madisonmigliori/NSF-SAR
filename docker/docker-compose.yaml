@@ -1,7 +1,7 @@
 
 services:
   rag:
-    image: 'madisonmigliori444/rag'
+    image: 'madisonmigliori444/rag:latest'
     ports: 
       - '8080:8080'
     depends_on:
@@ -11,8 +11,9 @@ services:
         condition: service_healthy
     restart: on-failure
     environment:
-      SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST: localhost
+      SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST: chroma
       SPRING_AI_VECTORSTORE_CHROMA_CLIENT_PORT: 8000
+ 
   chroma:
     image: ghcr.io/chroma-core/chroma:latest
     ports:
@@ -25,7 +26,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-
+   
   ollama:
     image: ollama/ollama:latest
     ports:
@@ -33,17 +34,21 @@ services:
     command: ["serve"]
     volumes:
       - ~/.ollama:/root/.ollama
+      - ollama_data:/root/.ollama
     environment:
       OLLAMA_MODELS: /root/.ollama/models
       OLLAMA_RUN_MODELS: llama3,nomic-embed-text
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags | grep -q 'llama3' || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
+   
 
 
 volumes:
   chroma_data:
   ollama_data:
+
+

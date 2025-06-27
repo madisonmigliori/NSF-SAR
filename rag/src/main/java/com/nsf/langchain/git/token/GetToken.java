@@ -1,4 +1,4 @@
-package com.nsf.langchain.ParsingCode.GitToken;
+package com.nsf.langchain.git.token;
 
 import java.io.File;
 
