@@ -9,7 +9,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Scanner;
 import java.util.Stack;
-import java.util.Base64;
 
 public class GitHubApi {
 
@@ -72,8 +71,6 @@ public class GitHubApi {
             while(!tovisit.isEmpty()){
                 BinaryTreeNode curr = tovisit.pop();
                 apiUrl = curr.path;
-
-                // String apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents/" + curr.path;
                 
                 HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(apiUrl))
@@ -89,7 +86,6 @@ public class GitHubApi {
                 if (jsonNode.isArray()) {
                     for (JsonNode node : jsonNode) {
                         String name = node.get("name").asText();
-                        // String path = node.get("path").asText();
                         String type = node.get("type").asText();
                         String url = node.get("url").asText();
 
@@ -100,7 +96,6 @@ public class GitHubApi {
                         }else if(!type.equals("file")){
                             System.out.println("******************** NEW TYPE DISCOVERED *********************");
                         }else{ // else assume type = file 
-                            // apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents/" + path;
                             String download_url = node.get("download_url").asText();
 
                             request = HttpRequest.newBuilder()
@@ -113,19 +108,10 @@ public class GitHubApi {
 
                             response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-                            // Parse JSON using Jackson
-                            // JsonNode root_one = mapper.readTree(response.body());
-                            // String content = root_one.get("download_url").asText();
-
                             if(!response.body().contains("�")){
                                 System.out.println("Decoded content\n " + apiUrl + " \n");
                                 System.out.println(response.body());
                             }
-                            // Extract and decode content
-                            // String base64Content = root_one.get("content").asText();
-                            // base64Content = base64Content.replaceAll("\\s", "").replaceAll("\\n", " "); // Remove all whitespace/newlines
-                            // byte[] decodedBytes = Base64.getDecoder().decode(base64Content);
-                            // String decodedContent = new String(decodedBytes);
                         }
                         curr.addChild(curr, NewNode);
                     }
