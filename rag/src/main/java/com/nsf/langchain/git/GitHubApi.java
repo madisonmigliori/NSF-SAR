@@ -36,7 +36,7 @@ public class GitHubApi {
             String GitClean = GitURL.getPath().split(".git")[0];
             String[] GitSections = GitClean.split("/");
 
-            //making sure github url
+            //making sure github url of repo
             while(!GitURL.getHost().equals("github.com") || GitSections.length == 2) { //
                 System.out.println("Github repo not found.. Retry?");
 
@@ -57,7 +57,7 @@ public class GitHubApi {
             Stack<BinaryTreeNode> tovisit= new Stack<>();
             
             String apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents";
-            BinaryTreeNode root = new BinaryTreeNode(repo, "repo", apiUrl, false);
+            BinaryTreeNode root = new BinaryTreeNode(repo, "repo", apiUrl);
             tovisit.push(root);
 
             HttpClient client = HttpClient.newBuilder()
@@ -70,7 +70,7 @@ public class GitHubApi {
 
             while(!tovisit.isEmpty()){
                 BinaryTreeNode curr = tovisit.pop();
-                apiUrl = curr.path;
+                apiUrl = curr.url;
                 
                 HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(apiUrl))
@@ -89,15 +89,13 @@ public class GitHubApi {
                         String type = node.get("type").asText();
                         String url = node.get("url").asText();
 
-                        BinaryTreeNode NewNode = new BinaryTreeNode(name, type, url, false);
-
                         if (type.equals("dir")){
+                            BinaryTreeNode NewNode = new BinaryTreeNode(name, type, url);
                             tovisit.push(NewNode);
-                        }else if(!type.equals("file")){
-                            System.out.println("******************** NEW TYPE DISCOVERED *********************");
+                            curr.addChild(curr, NewNode);
                         }else{ // else assume type = file 
                             String download_url = node.get("download_url").asText();
-
+                        
                             request = HttpRequest.newBuilder()
                                 .uri(URI.create(download_url))
                                 .header("Accept", "application/vnd.github+json")
@@ -107,13 +105,9 @@ public class GitHubApi {
                                 .build();
 
                             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-                            if(!response.body().contains("�")){
-                                System.out.println("Decoded content\n " + apiUrl + " \n");
-                                System.out.println(response.body());
-                            }
+                            BinaryTreeNode NewNode = new BinaryTreeNode(name, type, url, response.body());
+                            curr.addChild(curr, NewNode);
                         }
-                        curr.addChild(curr, NewNode);
                     }
                 } else {
                     System.out.println("Invalid Github Repo :(");
