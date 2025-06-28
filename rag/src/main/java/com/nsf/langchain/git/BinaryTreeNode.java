@@ -27,5 +27,4 @@ class BinaryTreeNode {
     public void addChild(BinaryTreeNode parent, BinaryTreeNode child){
         parent.children.add(child);
     }
-
 }

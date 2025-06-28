@@ -12,7 +12,9 @@ import java.util.Stack;
 
 public class GitHubApi {
 
-    public static void main(String[] args) {
+    private BinaryTreeNode root;
+
+    public BinaryTreeNode main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
 
@@ -58,6 +60,7 @@ public class GitHubApi {
             
             String apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents";
             BinaryTreeNode root = new BinaryTreeNode(repo, "repo", apiUrl);
+            this.root = root;
             tovisit.push(root);
 
             HttpClient client = HttpClient.newBuilder()
@@ -113,12 +116,17 @@ public class GitHubApi {
                     System.out.println("Invalid Github Repo :(");
                 }
             }
-
-            printTree(root, "");
-
+            // printTree(root, "");
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        return root;
+
+    }
+
+    public static BinaryTreeNode getTree(BinaryTreeNode root){
+        return root;
     }
 
     public static void printTree(BinaryTreeNode node, String indent) {

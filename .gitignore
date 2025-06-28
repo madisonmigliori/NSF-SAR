@@ -1,3 +1,4 @@
+.gitignore
 HELP.md
 
 target/
@@ -38,4 +39,6 @@ rag/src/main/resources/nsf-sar.2025-06-24.private-key.pem
 rag/src/main/resources/nsf-sar.2025-06-24.pkcs8.pem
 .env
 
-docker/docker-compose.yamls
+docker/docker-compose.yaml
+rag/src/main/java/com/nsf/langchain/git/GitHubApiHello.java
+
