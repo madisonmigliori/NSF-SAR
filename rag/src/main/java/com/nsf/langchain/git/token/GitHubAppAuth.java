@@ -1,4 +1,4 @@
-package com.nsf.langchain.ParsingCode.GitToken;
+package com.nsf.langchain.git.token;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;

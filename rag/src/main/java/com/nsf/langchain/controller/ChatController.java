@@ -12,8 +12,12 @@ import com.nsf.langchain.model.Answer;
 import com.nsf.langchain.model.Question;
 import com.nsf.langchain.service.RagService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/chat")
+@Tag(name = "Chat Controller", description = "Endpoints for communicating with the model")
 public class ChatController {
 
     @Autowired
@@ -21,6 +25,10 @@ public class ChatController {
 
  
     @PostMapping
+    @Operation(
+            summary = "Chat with the controller",
+            description = "The model takes the questions and responses."
+    )
     public ResponseEntity<Answer> chat(@RequestBody Question q) {
         try {
             String response = ragService.answer(q.getText(), q.getRepoId());
@@ -34,7 +42,11 @@ public class ChatController {
     }
 
     @GetMapping("/ping")
+     @Operation(
+            summary = "Controller's Health",
+            description = "Verifies that the RAG system is running."
+    )
     public String ping() {
-        return "RAG is running.";
+        return "Status: UP";
     }
 }

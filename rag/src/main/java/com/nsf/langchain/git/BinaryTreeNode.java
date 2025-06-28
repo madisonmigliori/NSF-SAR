@@ -1,12 +1,12 @@
-package com.nsf.langchain.ParsingCode;
+package com.nsf.langchain.git;
 
 import java.util.ArrayList;
 import java.util.List;
 
-class BinaryTreeNode {
-    String name;
-    String type;
-    String path;
+public class BinaryTreeNode {
+    public String name;
+    public String type;
+    public String path;
     List<BinaryTreeNode> children;
     Boolean inbounds;
 
