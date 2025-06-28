@@ -19,7 +19,7 @@ import org.springframework.boot.configurationprocessor.json.JSONArray;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.stereotype.Service;
 
-import com.nsf.langchain.git.GitHubApi;
+import com.nsf.langchain.git.GitHubApiHello;
 import com.nsf.langchain.git.token.GetToken;
 import com.nsf.langchain.utils.GitUtils;
 import com.nsf.langchain.utils.RepoUtils;
@@ -140,7 +140,7 @@ public class IngestionService {
     }
 
     public void ingestGitRepoAPI(String gitUrl) throws Exception {
-        GitHubApi repo = new GitHubApi();
+        GitHubApiHello repo = new GitHubApiHello();
 
         String repoId = RepoUtils.extractRepoId(gitUrl);
         BinaryTreeNode root = repo.inspectRepo(gitUrl);

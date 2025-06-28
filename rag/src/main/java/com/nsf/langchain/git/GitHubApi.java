@@ -1,48 +1,76 @@
 package com.nsf.langchain.git;
 
-import com.nsf.langchain.git.BinaryTreeNode;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nsf.langchain.git.token.*;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.net.*;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Scanner;
 import java.util.Stack;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nsf.langchain.controller.RepoController;
-import com.nsf.langchain.git.token.GetToken;
 
 public class GitHubApi {
 
-    private static final Logger log = LoggerFactory.getLogger(GitHubApi.class);
+    public static void main(String[] args) {
 
-    public BinaryTreeNode inspectRepo(String repoUrl) throws Exception {
-        String token = new GetToken().getToken();
-        URL gitUrl = new URI(repoUrl).toURL();
-        String[] gitSections = gitUrl.getPath().split("/");
-        
-        if(!gitUrl.getHost().equals("github.com") || gitUrl.getPath().split("/").length == 2) { //
-                log.error("Github repo not found.. Retry?");
-        }
+        Scanner scanner = new Scanner(System.in);
 
-            String user = gitSections[1];
-            String repo = gitSections[2];
-            
+        System.out.print("Enter Public GitHub Repo URL: ");
+        String ProjectURL = scanner.nextLine();
+
+        try {
+            while (ProjectURL.contains("git@github.com") || ProjectURL.contains("gh repo clone")) {
+                if (ProjectURL.contains("git@github.com")) {
+                    System.out.println("SSH Keys Not Accepted.. Retry?");
+                } else if (ProjectURL.contains("gh repo clone")) {
+                    System.out.println("GitHub CLIs Not Accepted.. Retry?");
+                }
+
+                System.out.print("Enter Public GitHub Repo URL: ");
+                ProjectURL = scanner.nextLine();
+            }
+
+            URL GitURL = new URI(ProjectURL).toURL();
+
+            String GitClean = GitURL.getPath().split(".git")[0];
+            String[] GitSections = GitClean.split("/");
+
+            //making sure github url
+            while(!GitURL.getHost().equals("github.com") || GitSections.length == 2) { //
+                System.out.println("Github repo not found.. Retry?");
+
+                System.out.print("Enter Public GitHub Repo URL: ");
+                ProjectURL = scanner.nextLine();
+                GitURL = new URI(ProjectURL).toURL();
+                GitClean = GitURL.getPath().split(".git")[0];
+                GitSections = GitClean.split("/");
+            }
+
+            scanner.close();
+
+            String user = GitSections[1];
+            String repo = GitSections[2];
+
+            String token = new GetToken().getToken();
             
             Stack<BinaryTreeNode> tovisit= new Stack<>();
-            BinaryTreeNode root = new BinaryTreeNode(repo, "repo", "", new ArrayList<BinaryTreeNode>());
+            
+            String apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents";
+            BinaryTreeNode root = new BinaryTreeNode(repo, "repo", apiUrl, false);
             tovisit.push(root);
+
+            HttpClient client = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .build();
+            
+            HttpResponse<String> response;
+            JsonNode jsonNode;
+            ObjectMapper mapper = new ObjectMapper();
 
             while(!tovisit.isEmpty()){
                 BinaryTreeNode curr = tovisit.pop();
-
-                String apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents/" + curr.path;
+                apiUrl = curr.path;
                 
                 HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(apiUrl))
@@ -52,82 +80,51 @@ public class GitHubApi {
                     .GET()
                     .build();
 
-                HttpClient client = HttpClient.newHttpClient();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-                ObjectMapper mapper = new ObjectMapper();
-                JsonNode jsonNode = mapper.readTree(response.body());
+                response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                jsonNode = mapper.readTree(response.body());
 
                 if (jsonNode.isArray()) {
                     for (JsonNode node : jsonNode) {
                         String name = node.get("name").asText();
-                        String path = node.get("path").asText();
                         String type = node.get("type").asText();
+                        String url = node.get("url").asText();
 
-                        BinaryTreeNode NewNode = new BinaryTreeNode(name, type, path);
+                        BinaryTreeNode NewNode = new BinaryTreeNode(name, type, url, false);
 
                         if (type.equals("dir")){
                             tovisit.push(NewNode);
                         }else if(!type.equals("file")){
-                            log.warn("******************** NEW TYPE DISCOVERED *********************");
+                            System.out.println("******************** NEW TYPE DISCOVERED *********************");
+                        }else{ // else assume type = file 
+                            String download_url = node.get("download_url").asText();
+
+                            request = HttpRequest.newBuilder()
+                                .uri(URI.create(download_url))
+                                .header("Accept", "application/vnd.github+json")
+                                .header("X-GitHub-Api-Version", "2022-11-28")
+                                .header("Authorization", "Bearer " + token) 
+                                .GET()
+                                .build();
+
+                            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                            if(!response.body().contains("�")){
+                                System.out.println("Decoded content\n " + apiUrl + " \n");
+                                System.out.println(response.body());
+                            }
                         }
-                     
                         curr.addChild(curr, NewNode);
                     }
                 } else {
-                    log.error("Invalid Github Repo :(");
+                    System.out.println("Invalid Github Repo :(");
                 }
             }
+
             printTree(root, "");
-            return root;
 
-        } 
-        
-
-    public List<String> flattenFilePaths(BinaryTreeNode root) {
-        List<String> paths = new ArrayList<>();
-        flatten(root, paths);
-        return paths;
-    }
-
-    private void flatten(BinaryTreeNode node, List<String> paths) {
-        if (node == null) return;
-        if (node.type.equals("file")) {
-            paths.add(node.path);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        if (node.children != null) {
-            for (BinaryTreeNode child : node.children) {
-                flatten(child, paths);
-            }
-        }
-    }
-
-    public String fetchFileContent(String user, String repo, String path) throws Exception {
-            String token = new GetToken().getToken();
-            String apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents/" + path;
-            
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(apiUrl))
-                .header("Accept", "application/vnd.github+json")
-                .header("X-GitHub-Api-Version", "2022-11-28")
-                .header("Authorization", "Bearer " + token) 
-                .GET()
-                .build();
-
-            HttpClient client = HttpClient.newHttpClient();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode jsonNode = mapper.readTree(response.body());
-
-            if (jsonNode.has("content")) {
-                String encodedContent = jsonNode.get("content").asText();
-                return new String(java.util.Base64.getDecoder().decode(encodedContent));
-            } else {
-                log.warn("No content found for file: {}", path);
-                return null;
-            }
-        
     }
 
     public static void printTree(BinaryTreeNode node, String indent) {

@@ -1,7 +1,6 @@
 package com.nsf.langchain.git.token;
 
 import java.io.File;
-
 import io.github.cdimascio.dotenv.Dotenv;
 
 public class GetToken {
