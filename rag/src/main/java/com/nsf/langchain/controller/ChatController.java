@@ -31,14 +31,14 @@ public class ChatController {
     )
     public ResponseEntity<Answer> chat(@RequestBody Question q) {
         try {
-            log.info("📨 Received question: '{}' for repo: '{}'", q.getText(), q.getRepoId());
+            log.info("Received question: '{}' for repo: '{}'", q.getText(), q.getRepoId());
             String response = ragService.answer(q.getText(), q.getRepoId());
             return ResponseEntity.ok(new Answer(response));
         } catch (Exception e) {
-            log.error("❌ Chat processing failed for question '{}'", q.getText(), e);
+            log.error("Chat processing failed for question '{}'", q.getText(), e);
             return ResponseEntity
                     .internalServerError()
-                    .body(new Answer("Sorry 😔. I couldn’t process your question right now. Please check logs or try again later."));
+                    .body(new Answer("Sorry. I couldn’t process your question right now. Please check logs or try again later."));
         }
     }
 
@@ -48,6 +48,6 @@ public class ChatController {
             description = "Quick ping to confirm that the chat service is up and running."
     )
     public String ping() {
-        return "✅ Status: UP";
+        return "Status: UP";
     }
 }
