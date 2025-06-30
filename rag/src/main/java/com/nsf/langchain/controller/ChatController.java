@@ -14,6 +14,9 @@ import com.nsf.langchain.model.Answer;
 import com.nsf.langchain.model.Question;
 import com.nsf.langchain.service.RagService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/chat")
 @Tag(name = "Chat Controller", description = "Endpoints for interacting with the LLM and retrieving architecture insights.")

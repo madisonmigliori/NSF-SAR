@@ -16,7 +16,9 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.vectorstore.chroma.autoconfigure.ChromaVectorStoreProperties;
 import org.springframework.stereotype.Service;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -47,102 +49,81 @@ public class RagService {
 
     public String answer(String question, String repoUrl) {
         if (repoUrl == null || repoUrl.isBlank()) {
-            return "❌ Missing Git repo URL. Please provide one.";
+            return " Missing Git repo URL. Please provide one.";
         }
-
+    
         String repoId = extractRepoId(repoUrl);
         String collectionName = repoId;
-        String jsonPath = "/Users/madisonmigliori/Documents/NSF/NSF-SAR/rag/doc";
-
+        Path jsonPath = Paths.get("/Users/madisonmigliori/Documents/NSF/NSF-SAR/rag/doc");
         String processedQuestion = normalizePossessiveLanguage(question, repoId);
-
+    
         try {
             log.info("🚀 Starting ingestion for repo '{}'", repoId);
             ingestionService.ingestRepo(repoUrl);
-            ingestionService.ingestJson(jsonPath, repoId);
-        } catch (Exception e) {
-            log.error("❌ Ingestion failed for '{}'", repoId, e);
-            return "Ingestion failed. Check server logs for details.";
-        }
-
-        ChromaVectorStore repoVectorStore = ChromaVectorStore.builder(chromaApi, embeddingModel)
-                .tenantName(vectorStoreProperties.getTenantName())
-                .databaseName(vectorStoreProperties.getDatabaseName())
-                .collectionName(collectionName)
-                .initializeSchema(true)
-                .initializeImmediately(true)
-                .build();
-
-        List<Document> docs = new ArrayList<>();
-        try {
-            log.info("🔍 Running vector search on collection '{}'", collectionName);
-            docs = repoVectorStore.similaritySearch(
+    
+            ChromaVectorStore repoVectorStore = ChromaVectorStore.builder(chromaApi, embeddingModel)
+                    .tenantName(vectorStoreProperties.getTenantName())
+                    .databaseName(vectorStoreProperties.getDatabaseName())
+                    .collectionName(collectionName)
+                    .initializeSchema(true)
+                    .initializeImmediately(true)
+                    .build();
+    
+            // ✅ Handle JSON directory vs file
+            if (Files.isDirectory(jsonPath)) {
+                ingestionService.ingestJsonDirectory(jsonPath, repoId, repoVectorStore);
+            } else {
+                ingestionService.ingestJson(jsonPath, repoId, repoVectorStore);
+            }
+    
+            log.info("🔎 Running vector search on collection '{}'", collectionName);
+            List<Document> docs = repoVectorStore.similaritySearch(
                     SearchRequest.builder()
                             .query(processedQuestion)
                             .topK(20)
                             .similarityThreshold(0.1)
                             .build()
             );
+    
+            if (docs == null || docs.isEmpty()) {
+                return "🤷 No relevant context found for this question.";
+            }
+    
+            String context = docs.stream()
+                    .map(Document::getText)
+                    .collect(Collectors.joining("\n---\n"));
+    
+            log.info("📄 Retrieved Context:\n{}", context);
+    
+            if (containsGreeting(question)) {
+                return "👋 Hey! I’m your architecture assistant. Ask me about microservice patterns, design smells, or improvements in your repo!";
+            }
+    
+            List<Message> messages = Arrays.asList(
+                    new SystemMessage("""
+                            You are a friendly, precise, and expert Software Architecture Assistant.
+    
+                            Your goals:
+                            - Analyze the provided repository and JSON scoring context.
+                            - Identify microservice patterns, smells, and architecture concerns.
+                            - Suggest improvements, refactorings, and pattern applications.
+                            - ONLY use the given context. DO NOT hallucinate or reference external URLs.
+                            - If you don’t have enough context, say: "I don’t have enough information to answer that."
+                            """),
+                    new UserMessage("Here is the context:\n" + context + "\n\nNow answer this:\n" + processedQuestion)
+            );
+    
+            ChatResponse response = chatModel.call(new Prompt(messages));
+            String llmAnswer = response.getResult().getOutput().getText();
+    
+            return llmAnswer;
+    
         } catch (Exception e) {
-            log.error("❌ Vector search failed for question '{}'", question, e);
-            return "Vector search failed. Please try again.";
+            log.error("❌ Error while processing question '{}': {}", question, e.getMessage(), e);
+            return "Something went wrong. Please check the server logs.";
         }
-
-        if (docs == null || docs.isEmpty()) {
-            return "🤷 No relevant context found for this question.";
-        }
-
-        String context = docs.stream()
-                .map(Document::getText)
-                .collect(Collectors.joining("\n---\n"));
-
-        if (containsGreeting(question)) {
-            return "👋 Hey! I’m your architecture assistant. Ask me about microservice patterns, design smells, or improvements in your repo!";
-        }
-
-        List<Message> messages = Arrays.asList(
-                new SystemMessage("""
-                        You are a friendly, precise, and expert Software Architecture Assistant.
-
-                        Your goals:
-                        - Analyze the provided repository and JSON scoring context.
-                        - Identify microservice patterns, smells, and architecture concerns.
-                        - Suggest improvements, refactorings, and pattern applications.
-                        - ONLY use the given context. DO NOT hallucinate or reference external URLs.
-                        - If you don’t have enough context, say: "I don’t have enough information to answer that."
-                        """),
-                new UserMessage("Here is the context:\n" + context + "\n\nNow answer this:\n" + processedQuestion)
-        );
-
-        ChatResponse response = chatModel.call(new Prompt(messages));
-        String llmAnswer = response.getResult().getOutput().getText();
-
-        // ✅ Optional: Store the LLM answer as its own document for future conversation grounding
-        try {
-            ChromaVectorStore chatHistoryStore = ChromaVectorStore.builder(chromaApi, embeddingModel)
-                    .tenantName(vectorStoreProperties.getTenantName())
-                    .databaseName(vectorStoreProperties.getDatabaseName())
-                    .collectionName("conversations_" + repoId)
-                    .initializeSchema(true)
-                    .initializeImmediately(true)
-                    .build();
-
-            Document answerDoc = Document.builder()
-                    .text(llmAnswer)
-                    .metadata("repo", repoId)
-                    .metadata("source", "LLMAnswer")
-                    .metadata("user_question", question)
-                    .build();
-
-            chatHistoryStore.add(List.of(answerDoc));
-            log.info("✅ Stored LLM answer for repo '{}'", repoId);
-
-        } catch (Exception e) {
-            log.warn("⚠️ Failed to store LLM answer for '{}': {}", repoId, e.getMessage());
-        }
-
-        return llmAnswer;
     }
+    
 
     private String extractRepoId(String gitUrl) {
         String[] parts = gitUrl.replace(".git", "").split("/");

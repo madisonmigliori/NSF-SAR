@@ -1,9 +1,9 @@
-package com.nsf.langchain.ParsingCode;
+package com.nsf.langchain.git;
 
 import java.util.ArrayList;
 import java.util.List;
 
-class BinaryTreeNode {
+public class BinaryTreeNode {
     String name;
     String type;
     String path;
