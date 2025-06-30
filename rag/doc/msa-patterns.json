@@ -1,0 +1,583 @@
+{
+    "patterns": [
+        {
+            "name": "Proxy",
+            "description": "Acts as an intermediary microservice that exposes a stable API to consumers and delegates requests to internal services based on logic, useful during transitions such as supporting old and new service versions without breaking clients.",
+            "advantage": "Simple to implement and maintain; encapsulates validation, security, routing, and caching in a single layer; enables independent deployment and decommissioning of service versions.",
+            "disadvantage": "Can become a performance bottleneck if not scaled properly; risk of response inconsistencies if proxy logic alters payloads unexpectedly.",
+            "common implementations": "Integrate with service discovery systems like Consul, ZooKeeper, WSO2; implement thread pool management and timeouts to prevent blocking and cascading failures."
+        },
+        {
+            "name": "Sidecar",
+            "description": "An additional container or process deployed alongside the main microservice to offload supporting or cross-cutting concerns without changing the main service's core logic. Shares lifecycle with the main service but runs isolated for fault containment.",
+            "advantage": "Modularity and extensibility; isolates concerns; sidecar and main service can scale independently; reusable across services.",
+            "disadvantage": "Increased complexity managing multiple containers/processes; potential single point of failure if sidecar fails; added latency overhead; synchronization challenges.",
+            "common implementations": "Kubernetes pods with Envoy sidecar (Istio); Netflix Prana for legacy service registration; AWS App Mesh sidecar proxies for service mesh functionality; sidecars for logging, monitoring, security, config reloading."
+        },
+        {
+            "name": "Bulkhead",
+            "description": "Partitions an application into isolated sections with dedicated resources (threads, connections, memory) to prevent failure or resource exhaustion in one part from impacting others.",
+            "advantage": "Limits blast radius of faults; improves fault tolerance and availability; unaffected sections continue operating during partial failures.",
+            "disadvantage": "Requires careful resource allocation; can lead to underutilization of resources if not balanced; added complexity in configuration.",
+            "common implementations": "Isolated thread pools per dependency (e.g., Netflix Hystrix); separate connection pools for critical and non-critical API calls; database connection pools segmented by workload."
+        },
+        {
+            "name": "Strangler Fig",
+            "description": "Incrementally migrates a monolithic legacy application to microservices by gradually replacing parts of the monolith with new services, routing traffic to the new services until the monolith can be fully decommissioned.",
+            "advantage": "Reduces migration risk; allows incremental modernization with minimal disruption; enables prioritization of critical features; supports continuous delivery and testing.",
+            "disadvantage": "Requires intelligent routing and integration; increases complexity with dual systems during migration; data synchronization challenges; requires ongoing monitoring.",
+            "common implementations": "API gateways or proxies for conditional routing; phased extraction of functionality into microservices; parallel operation of old and new systems during transition."
+        },
+        {
+            "name": "Business Capability",
+            "description": "Aligns microservices with core business functions, each service representing a stable business capability focused on business logic rather than technical concerns.",
+            "advantage": "Stable architecture as business capabilities are typically stable over time; clear alignment with business goals.",
+            "disadvantage": "Challenging to clearly define business capabilities; risk of overlapping 'God Classes' spanning multiple capabilities.",
+            "common implementations": "Services organized by business functions such as sales, marketing, accounting; emphasis on business logic encapsulation."
+        },
+        {
+            "name": "Domain-Driven Design",
+            "description": "Breaks down the domain into subdomains and bounded contexts, developing microservices aligned to these areas to manage complexity and support agile development.",
+            "advantage": "Increases architectural flexibility and scalability; promotes deep business understanding and clear service boundaries.",
+            "disadvantage": "Requires deep domain expertise and thorough business analysis before design; can be complex to implement correctly.",
+            "common implementations": "Using DDD to identify core and supporting domains; defining bounded contexts; developing microservices per subdomain."
+        },
+        {
+            "name": "Transaction",
+            "description": "Decomposes microservices around individual business transactions to isolate transaction logic and avoid complexity from distributed transactions.",
+            "advantage": "Simplifies development, testing, and maintenance by isolating transaction logic; reduces latency and complexity from cross-service transactions.",
+            "disadvantage": "May lead to too many fine-grained services increasing overall system complexity; requires careful scope evaluation.",
+            "common implementations": "Microservices per transaction like order management or payment processing; careful boundary definition for transactional consistency."
+        },
+        {
+            "name": "Stateless Services",
+            "description": "Services that do not retain client-specific or session-specific state between requests; all state is passed with each request or stored externally.",
+            "advantage": "Enables easy horizontal scaling; improves resilience and failover; simplifies deployment and supports ephemeral containerized workloads.",
+            "disadvantage": "Requires external state management; can complicate client or infrastructure design to handle session state.",
+            "common implementations": "REST APIs (inherently stateless); use of JWT tokens or external caches/databases for session data; worker services processing jobs from queues."
+        },
+        {
+            "name": "Gateway Routing",
+            "description": "Uses a Layer‑7 gateway as a single entry point to route incoming requests to the appropriate backend microservices based on HTTP attributes like IP, header, hostname, or URL path.",
+            "advantage": "Simplifies client communication with a single endpoint, enables global and regional traffic routing, supports backend scaling and dynamic instance updates, masks internal service endpoints.",
+            "disadvantage": "Adds latency due to an extra network hop, gateway is a critical point requiring high availability, backend services must restrict direct public access.",
+            "common implementations": "Azure Front Door (global), Azure Application Gateway (regional), Nginx, HAProxy, service-mesh ingress controllers."
+        },
+        {
+            "name": "Gateway Aggregation",
+            "description": "Aggregates multiple backend service calls into a single request through a gateway to reduce client-to-service call volume, improving performance especially over high-latency or unreliable networks.",
+            "advantage": "Reduces number of client calls, improves performance over high-latency networks, simplifies client logic, enables centralized resilience management, improves security by isolating backend services, allows backend evolution independent of clients.",
+            "disadvantage": "Potential single point of failure, can become a bottleneck if not scaled properly, gateway can tightly couple backend services if not designed carefully, requires resilient design patterns and careful latency management.",
+            "common implementations": "Implemented as part of API Gateway solutions; can be combined with bulkhead, circuit breaker, retries, and timeouts; may offload aggregation logic to a separate service behind the gateway."
+        },
+        {
+            "name": "Publisher/Subscriber ",
+            "description": "Enables loose coupling through asynchronous communication via message brokers. Publishers emit events without knowing subscribers, which receive messages asynchronously based on their subscriptions.",
+            "advantage": "Supports scalability and flexibility by decoupling senders and receivers; enables asynchronous processing and real-time event distribution.",
+            "disadvantage": "Requires reliable and scalable message brokers; subscribers must handle out-of-order or duplicate messages; eventual consistency challenges.",
+            "common implementations": "Apache Kafka, RabbitMQ, AWS SNS/SQS, Google Pub/Sub"
+        },
+        {
+            "name": "Anti-Corruption Layer",
+            "description": "A translation or barrier layer that protects the internal system’s domain logic and data models from external system inconsistencies by mapping external concepts to internal equivalents.",
+            "advantage": "Maintains domain integrity, isolates changes, protects internal models, and enables integration with legacy or third-party systems.",
+            "disadvantage": "Adds latency and complexity due to extra translation steps; scaling ACLs can be challenging.",
+            "common implementations": "Adapters, Data Transfer Objects (DTOs), middleware translation layers"
+        },
+        {
+            "name": "Smart Endpoints, Dumb Pipes",
+            "description": "A microservices principle where microservices handle their own logic (smart endpoints) while communication channels remain simple and lightweight (dumb pipes), avoiding centralized orchestration.",
+            "advantage": "Promotes decentralization, reduces coupling, avoids single points of failure, and improves maintainability and scalability.",
+            "disadvantage": "Requires services to implement coordination logic themselves, which can lead to duplicated effort or inconsistent processes if not managed carefully.",
+            "common implementations": "Direct HTTP/REST calls, gRPC, lightweight messaging systems like Kafka or RabbitMQ without ESBs"
+        },
+        {
+            "name": "Asynchronous Messaging",
+            "description": "Services communicate asynchronously by sending events or messages to a broker without waiting for immediate responses, enabling loose coupling and scalable, fault-tolerant systems.",
+            "advantage": "Improves scalability, fault tolerance, and responsiveness by decoupling producers and consumers and supporting eventual consistency.",
+            "disadvantage": "Increases complexity in ensuring message ordering, handling duplicates, and maintaining eventual consistency across distributed services.",
+            "common implementations": "Apache Kafka, RabbitMQ, AWS SNS/SQS, Google Pub/Sub"
+        },
+        {
+            "name": "Consumer-Driven Contracts",
+            "description": "API consumers define their expected contracts and providers verify compliance through automated tests to prevent breaking changes and enable independent service evolution.",
+            "advantage": "Prevents integration failures, supports safe deployments, and improves team communication by ensuring API compatibility before runtime.",
+            "disadvantage": "Requires coordination to maintain contracts and manage versioning, potentially adding overhead to the development process.",
+            "common implementations": "Pact, Spring Cloud Contract, Hoverfly, WireMock"
+        },
+        {
+            "name": "Shadow Deployment",
+            "description": "Deploys a new service version alongside the current one by mirroring live traffic to it without impacting user responses, enabling risk-free testing in production.",
+            "advantage": "Allows real-world testing without user impact, catches production-only issues, and supports data-driven rollout decisions.",
+            "disadvantage": "Requires robust monitoring and isolation to prevent side effects, and is typically limited to read-only or side-effect-free traffic.",
+            "common implementations": "Traffic mirroring via load balancers, proxies, or service mesh features like Istio or AWS Route 53"
+        },
+        {
+            "name": "Retry",
+            "description": "Automatically retries failed operations in microservices to improve success rates and reduce the impact of transient failures using strategies like exponential backoff and jitter.",
+            "advantage": "Increases fault tolerance and reliability by handling temporary failures transparently, improving user experience without code changes.",
+            "disadvantage": "Improper retry logic can overload services, cause retry storms, or lead to data inconsistencies if non-idempotent operations are retried.",
+            "common implementations": "Netflix Hystrix, Spring Cloud Retry, Polly, AWS SDK automatic retries"
+        },
+        {
+            "name": "Message Broker",
+            "description": "Middleware that routes messages between services, decoupling producers and consumers to enable asynchronous communication with support for reliable delivery, routing, and protocol translation.",
+            "advantage": "Enables scalable, decoupled communication, supports asynchronous processing, improves fault tolerance, and facilitates complex routing patterns.",
+            "disadvantage": "Introduces infrastructure complexity, requires management of message ordering and duplication, and adds operational overhead.",
+            "common implementations": "Apache Kafka, RabbitMQ, AWS SNS/SQS, Google Pub/Sub"
+        },
+        {
+            "name": "Message Queue",
+            "description": "Stores messages until consumers are ready to process them, enabling load leveling, asynchronous processing, message durability, and ordered delivery.",
+            "advantage": "Improves system resilience, smooths load spikes, and ensures reliable processing of tasks or events.",
+            "disadvantage": "Potential message delays, requires careful handling of message ordering and duplicates.",
+            "common implementations": "RabbitMQ, AWS SQS, Azure Queue Storage"
+        },
+        {
+            "name": "Sequential Convoy",
+            "description": "Processes related messages in strict order per category while allowing parallelism across categories, useful for workflows requiring FIFO processing per entity such as order processing.",
+            "advantage": "Ensures ordered processing per entity while supporting concurrency across different entities.",
+            "disadvantage": "Can create bottlenecks if one category’s processing slows down; complexity in managing ordered queues.",
+            "common implementations": "Partitioned Kafka topics, Azure Service Bus sessions"
+        },
+        {
+            "name": "Competing Consumers",
+            "description": "Multiple consumers compete to process messages from the same queue, enabling load balancing and parallel processing with the need for idempotent message handling.",
+            "advantage": "Improves throughput and availability by distributing workload among multiple consumers.",
+            "disadvantage": "Requires idempotent processing to handle possible duplicate message consumption.",
+            "common implementations": "RabbitMQ consumer groups, Kafka consumer groups"
+        },
+        {
+            "name": "Scheduler Agent Supervisor",
+            "description": "Triggers tasks or messages at predefined times and supervises long-running or recurring processes to ensure completion, useful for timed batch jobs or retry mechanisms.",
+            "advantage": "Automates scheduling and supervision of jobs, improving reliability and timely execution.",
+            "disadvantage": "Adds complexity in managing schedules and handling failures.",
+            "common implementations": "Kubernetes CronJobs, Quartz Scheduler, AWS EventBridge"
+        },
+        {
+            "name": "Process Manager",
+            "description": "Orchestrates and manages long-running, multi-step business processes across multiple services, tracking state and coordinating interactions to ensure process consistency and error handling.",
+            "advantage": "Provides clear visibility and control over complex workflows and ensures reliability of multi-service processes.",
+            "disadvantage": "Can introduce coupling and complexity; careful design needed to avoid bottlenecks.",
+            "common implementations": "Saga pattern coordinators, Camunda BPM, Netflix Conductor"
+        },
+        {
+            "name": "API Gateway",
+            "description": "Provides a single entry point for client requests, centralizing access to microservices, simplifying client interactions, handling cross-cutting concerns like authentication, rate limiting, logging, and caching.",
+            "advantage": "Simplifies client experience, improves security with centralized authentication, enables centralized management of policies and traffic, and optimizes performance by reducing client calls.",
+            "disadvantage": "Adds architectural complexity, potential single point of failure, and performance overhead if not well optimized.",
+            "common implementations": "Netflix Zuul, AWS API Gateway, Azure API Management, Kong"
+        },
+        {
+            "name": "Backends for Frontends",
+            "description": "Each client type (web, mobile, desktop) has its own dedicated backend service acting as a customized API layer that shapes data and handles client-specific logic to optimize performance and user experience.",
+            "advantage": "Tailors responses for different platforms, improves performance and user experience, enables parallel development across frontend teams, and reduces API bloat.",
+            "disadvantage": "Adds architectural complexity and increases setup and maintenance overhead.",
+            "common implementations": "Separate BFF services per client built with Node.js, Spring Boot, or similar frameworks; often deployed alongside API Gateways."
+        },
+        {
+            "name": "Aggregator",
+            "description": "Combines data from multiple microservices into a single, unified response for the client, simplifying client-side logic and reducing network calls.",
+            "advantage": "Simplifies client experience with one endpoint, reduces network calls, centralizes data processing for consistency, and optimizes frontend performance.",
+            "disadvantage": "Adds orchestration complexity, can become a single point of failure, may introduce latency, and requires careful scaling.",
+            "common implementations": "Composite microservices with business logic aggregation; API gateways with response aggregation (e.g., Netflix API Gateway, GraphQL layer)"
+        },
+        {
+            "name": "Client-Side UI Composition",
+            "description": "Builds the frontend as independent UI components, each fetching data from its corresponding backend microservice, enabling dynamic partial updates and modular development.",
+            "advantage": "Improves modularity and alignment with service architecture, allows faster interactions with partial UI reloads, and supports independent evolution of components.",
+            "disadvantage": "Increases client-side complexity, requires handling loading and error states per component, and demands close frontend-backend coordination.",
+            "common implementations": "Component-based frameworks like React, Angular, Vue.js used with REST or GraphQL microservice APIs."
+        },
+        {
+            "name": "Chain of Responsibility",
+            "description": "Processes a request sequentially through a series of microservices where each service performs a distinct task and forwards the request to the next service in the chain.",
+            "advantage": "Clear separation of concerns, improved modularity and reusability, and ability to scale individual services independently.",
+            "disadvantage": "Tight coupling along the chain increases fragility, latency accumulates with each step, complex error handling and rollback, and distributed debugging challenges.",
+            "common implementations": "Payment workflows, user registration flows, document processing pipelines implemented with REST/gRPC calls or messaging workflows."
+        },
+        {
+            "name": "Command Query Responsibility Segregation",
+            "description": "Separates read and write operations into distinct models or services to optimize performance and scalability, often paired with event sourcing to asynchronously update read models.",
+            "advantage": "Enables performance optimization by tailoring read and write workloads, allows independent scalability, supports eventual consistency, and improves maintainability with clear separation of concerns.",
+            "disadvantage": "Increases system complexity by maintaining two synchronized models, risks eventual consistency delays, can cause code duplication, and requires careful data synchronization.",
+            "common implementations": "Write models enforcing business logic and updating primary databases; read models using denormalized views or specialized stores like Elasticsearch; message queues or event streams for synchronization."
+        },
+        {
+            "name": "Event Sourcing",
+            "description": "Stores all state changes as a sequence of immutable events rather than only the current state. Microservices publish and consume events to maintain or reconstruct their state, enabling asynchronous communication and decoupling.",
+            "advantage": "Provides a complete audit trail, supports temporal queries, enables flexible and scalable state management, and facilitates asynchronous integration between services.",
+            "disadvantage": "Increases complexity in managing event logs and reconstructing state, requires handling eventual consistency, leads to higher storage needs, and complicates querying unless snapshots or read models are used.",
+            "common implementations": "Event stores (e.g., EventStoreDB), Kafka for event streaming, snapshots to optimize replay, combined with CQRS for query optimization."
+        },
+        {
+            "name": "Saga",
+            "description": "Manages distributed transactions across multiple microservices by breaking a business process into a sequence of local transactions. Uses compensating transactions to undo steps if a failure occurs, enabling data consistency without distributed ACID transactions.",
+            "advantage": "Ensures eventual consistency across services with autonomous databases, supports failure recovery, and promotes scalability and loose coupling.",
+            "disadvantage": "Increases architectural complexity, requires careful design of compensating actions, complicates debugging and tracing, and demands idempotent operations to handle retries safely.",
+            "common implementations": "Choreography with event-driven communication (e.g., Kafka), centralized orchestration frameworks (e.g., Netflix Conductor, Camunda), compensating transaction design."
+        },
+        {
+            "name": "Polyglot Persistence",
+            "description": "The use of different types of databases and storage systems within the same application, each chosen to best fit the needs of a specific microservice. It enables microservices to select the most appropriate data store technology based on data structure, access patterns, and performance requirements.",
+            "advantage": "Optimizes performance, scalability, and maintainability by aligning database technology with specific service needs. Avoids forcing all services into a single, possibly ill-suited data model. Allows services to benefit from SQL for structured data, NoSQL for scalability and flexibility, caches for low-latency access, and search engines for text-rich data querying.",
+            "disadvantage": "Increases operational complexity due to managing multiple database technologies. Requires careful monitoring and support for diverse systems. Cross-service queries become difficult and data consistency across systems can be challenging to maintain.",
+            "common implementations": "E-commerce platforms use document databases (e.g., MongoDB) for product catalogs, relational databases (e.g., PostgreSQL) for orders, data warehouses (e.g., Amazon Redshift or BigQuery) for analytics, and caches (e.g., Redis) for frequently accessed data. Large companies like Amazon use DynamoDB, RDS, and Redshift depending on context; Netflix uses Cassandra, MySQL, Elasticsearch, and Redis, selecting the best tool for each microservice."
+        },
+        {
+            "name": "Data Sharding",
+            "description": "A technique for partitioning a large database into smaller segments called shards, each holding a subset of the data. Sharding distributes data across multiple databases to improve performance and scalability.",
+            "advantage": "Improves horizontal scalability, increases read/write throughput, reduces latency, and enables handling of very large datasets by parallelizing operations across shards.",
+            "disadvantage": "Adds complexity to query routing and application logic. Cross-shard operations are difficult, and poor shard key selection can lead to data hotspots. Resharding and maintaining consistency can be operationally expensive.",
+            "common implementations": "Twitter shards user and tweet data to avoid overloading a single DB. Instagram shards by user ID for scalability. E-commerce platforms shard by region or customer type. Time-series databases shard by time intervals to manage high-ingest workloads."
+        },
+        {
+            "name": "Database Per Service",
+            "description": "A microservices design approach where each service owns its own dedicated database, which is not directly accessible by other services. This pattern encapsulates the database as part of the service's internal implementation and enforces interaction through APIs.",
+            "advantage": "Enables loose coupling, technology flexibility, clear data ownership, and independent scalability. Each service can evolve its data model independently, improving modularity and fault isolation.",
+            "disadvantage": "Increases operational complexity due to managing multiple databases. Makes cross-service querying and data consistency more difficult, often requiring compensating patterns like Saga or Event Sourcing.",
+            "common implementations": "Amazon assigns a dedicated database to each service (e.g., Accounts, Orders, Payments), tailored to its needs. Netflix applies polyglot persistence with separate databases per service. Uber keeps separate databases for Trip and User services to maintain autonomy."
+        },
+        {
+            "name": "Health Check",
+            "description": "Provides an HTTP endpoint to report the operational status of a service, helping orchestrators and monitoring tools detect unhealthy instances and route traffic accordingly.",
+            "advantage": "Ensures only healthy service instances receive traffic, supports graceful degradation, and integrates well with orchestration platforms like Kubernetes and AWS. Enables early detection of infrastructure or application issues.",
+            "disadvantage": "Overly complex checks can slow response times or create false positives/negatives. Polling frequency needs to be carefully balanced. Requires secure handling to avoid exposing internal state.",
+            "common implementations": "Spring Boot Actuator, Micronaut health endpoints, ASP.NET Core health checks, Kubernetes liveness and readiness probes (/health/live and /health/ready), AWS ALB target health checks, Consul service health checks."
+        },
+        {
+            "name": "Distributed Tracing",
+            "description": "Tracks a single request as it flows through multiple microservices, recording timing, events, and service interactions. Helps identify performance bottlenecks and troubleshoot errors in complex call chains.",
+            "advantage": "Enables end-to-end visibility into request flow, making it easier to debug latency issues, detect failures, and understand service dependencies.",
+            "disadvantage": "Requires consistent instrumentation across all services, and can increase data volume and system overhead. Sensitive to clock skew and tracing configuration issues.",
+            "common implementations": "OpenTelemetry, Jaeger, Zipkin, Spring Cloud Sleuth, AWS X-Ray, Datadog APM."
+        },
+        {
+            "name": "Log Aggregation",
+            "description": "Consolidates log data from multiple microservice instances into a centralized system for easier querying, monitoring, and alerting.",
+            "advantage": "Simplifies monitoring and troubleshooting by providing a single point to analyze logs across services. Enables faster root cause analysis with keyword search and real-time alerts.",
+            "disadvantage": "High storage and bandwidth requirements. Requires proper log format standardization and tagging (e.g., with request IDs).",
+            "common implementations": "ELK Stack (Elasticsearch, Logstash, Kibana), Fluentd, Graylog, Loki with Grafana, AWS CloudWatch Logs, PCF Loggregator."
+        },
+        {
+            "name": "Performance Metrics",
+            "description": "Collects quantitative data (e.g., latency, CPU usage, memory consumption, request rates) from services to assess system health and performance over time.",
+            "advantage": "Provides a high-level view of service health, helps detect anomalies early, and supports autoscaling decisions based on trends.",
+            "disadvantage": "Can lead to alert fatigue if not tuned correctly. Aggregated data may lose granularity and context compared to logs or traces.",
+            "common implementations": "Prometheus (pull model), New Relic, AppDynamics, Datadog, Amazon CloudWatch, Micrometer, Grafana."
+        },
+        {
+            "name": "Circuit Breaker",
+            "description": "Prevents cascading failures by halting requests to a failing service and providing fallback behavior. Useful when a service depends on unreliable or slow downstream services.",
+            "advantage": "Improves resilience and user experience by quickly failing and isolating faulty services. Prevents system resource exhaustion and thread blocking.",
+            "disadvantage": "Requires fine-tuning of thresholds and timeouts. Fallback logic must be meaningful and safe. Adds complexity to service design.",
+            "common implementations": "Netflix Hystrix (now in maintenance), Resilience4j (Java), Polly (.NET), Istio circuit breaking, AWS App Mesh, Spring Cloud Circuit Breaker."
+        },
+        {
+            "name": "Blue-Green Deployment",
+            "description": "Maintains two production environments—one live (Blue), one idle (Green). Deploy new changes to the idle environment and switch traffic when ready. Allows instant rollback if needed.",
+            "advantage": "Enables zero-downtime deployments and quick rollbacks. Reduces deployment risk and allows thorough pre-release testing in a production-like environment.",
+            "disadvantage": "Requires double infrastructure, increasing costs. Managing data synchronization between environments can be complex.",
+            "common implementations": "Supported by platforms like Kubernetes, Spinnaker, AWS Elastic Beanstalk, Azure DevOps Pipelines, Jenkins X."
+        },
+        {
+            "name": "Service Discovery",
+            "description": "Automatically detects and tracks service instances and their locations in a dynamic microservices environment, enabling services to find and talk to each other without hardcoded addresses.",
+            "advantage": "Enables scalability, flexibility, and resiliency in dynamic environments. Reduces human error and simplifies service communication.",
+            "disadvantage": "Adds complexity via service registry maintenance and health checking. Can introduce network latency and a single point of failure if not highly available.",
+            "common implementations": "Netflix Eureka, Consul, etcd (Kubernetes), AWS Cloud Map, Istio, Apache Zookeeper, NGINX Plus Service Discovery."
+        },
+        {
+            "name": "Fail Fast",
+            "description": "Immediately terminates an operation when failure is expected or detected, conserving system resources and enabling fast recovery.",
+            "advantage": "Improves system responsiveness and avoids cascading delays.",
+            "disadvantage": "May result in false negatives if not carefully calibrated. Requires accurate failure prediction."
+        },
+        {
+            "name": "Fallback",
+            "description": "Provides default or alternative behavior when a service call fails, maintaining user experience and preventing full failure.",
+            "advantage": "Supports graceful degradation and ensures some level of service availability.",
+            "disadvantage": "Fallback data may be outdated or limited in functionality. Increases complexity in design."
+        },
+        {
+            "name": "Throttling",
+            "description": "Limits the number of requests to a service to avoid overload and maintain availability during peak traffic or attack scenarios.",
+            "advantage": "Protects services from overload and preserves performance under stress.",
+            "disadvantage": "May delay or reject valid client requests. Needs intelligent limit-setting and user feedback mechanisms."
+        },
+        {
+            "name": "Load Leveling",
+            "description": "Introduces a queue between request producer and consumer to buffer bursts and stabilize load over time.",
+            "advantage": "Prevents system crashes from sudden traffic spikes and enables smoother load distribution.",
+            "disadvantage": "Adds latency and operational complexity. Requires queue management and potential scaling of consumers."
+        },
+        {
+            "name": "Priority Queue",
+            "description": "Extends load leveling by assigning priority levels to requests, ensuring critical tasks are processed before less important ones.",
+            "advantage": "Improves responsiveness for critical operations in resource-constrained scenarios.",
+            "disadvantage": "Risk of starvation for low-priority requests. Requires clear and consistent prioritization logic."
+        },
+        {
+            "name": "Timeout",
+            "description": "Limits the amount of time a service will wait for a downstream call to complete, preventing blocked threads and unresponsive systems.",
+            "advantage": "Prevents thread exhaustion and speeds up failure detection. Improves user experience with faster error handling.",
+            "disadvantage": "Choosing incorrect timeout values can lead to premature failures or delayed recovery. May result in duplicates when combined with retries.",
+            "common implementations": "RestTemplate (Spring), Retrofit, Feign with Hystrix/Resilience4j, gRPC deadlines, Kubernetes liveness probes."
+        },
+        {
+            "name": "Valet Key",
+            "description": "Grants clients temporary, scoped access to cloud storage using short-lived tokens, enabling direct upload/download and reducing application load.",
+            "advantage": "Reduces compute and bandwidth usage, improves performance, enhances security with time-bound access, and eliminates need to expose storage credentials.",
+            "disadvantage": "Requires secure token delivery, proper token lifetime tuning, and careful validation of uploaded content. May expose access via logged URLs.",
+            "common implementations": "Azure Shared Access Signatures (SAS), AWS Pre-Signed URLs, Google Cloud Signed URLs"
+        },
+        {
+            "name": "Dead Letter Queue",
+            "description": "A secondary queue used to capture and isolate messages that fail to process successfully, enabling troubleshooting and fault isolation without impacting the main system.",
+            "advantage": "Improves system reliability, prevents processing bottlenecks, enables inspection and debugging of faulty messages, and supports auditing and alerting.",
+            "disadvantage": "Requires monitoring and handling strategy, potential exposure of sensitive data, and extra resource planning for DLQ cleanup and processing.",
+            "common implementations": "Azure Service Bus DLQ, AWS SQS DLQ, Google Cloud Pub/Sub Dead Letter Topics, RabbitMQ DLX (Dead Letter Exchange)"
+        },
+        {
+            "name": "Load Balancer",
+            "description": "Distributes incoming requests evenly across multiple service instances to prevent bottlenecks and improve fault tolerance.",
+            "advantage": "Improves performance and availability; prevents single-point overload.",
+            "disadvantage": "Can become a single point of failure itself if not highly available.",
+            "common implementations": "AWS Elastic Load Balancer, NGINX, HAProxy, Azure Load Balancer"
+        },
+        {
+            "name": "Cache Aside",
+            "description": "Application manages cache population on-demand by checking cache first and then loading from the database if needed.",
+            "advantage": "Improves read performance and reduces database load.",
+            "disadvantage": "Potential for stale data; cache misses increase latency.",
+            "common implementations": "Redis, Memcached with application-managed logic"
+        },
+        {
+            "name": "Autoscaling",
+            "description": "Automatically scales service instances based on system metrics like CPU or memory.",
+            "advantage": "Optimizes resource usage and costs; supports elastic scaling.",
+            "disadvantage": "Reactive; may not handle bursty traffic well without proper thresholds.",
+            "common implementations": "AWS Auto Scaling Groups, Kubernetes Horizontal Pod Autoscaler"
+        },
+        {
+            "name": "Event-Driven Autoscaling",
+            "description": "Triggers scaling based on queue length or workload-specific events instead of just system metrics.",
+            "advantage": "Responsive to actual workload; handles asynchronous loads better.",
+            "disadvantage": "More complex to configure; may require custom metrics or event handlers.",
+            "common implementations": "KEDA for Kubernetes, AWS Lambda + SQS-based triggers"
+        },
+        {
+            "name": "Token-Based Authentication",
+            "description": "Stateless authentication using signed tokens for secure access control.",
+            "advantage": "Scalable, language-agnostic authentication mechanism.",
+            "disadvantage": "Token expiration, revocation, and leakage risks.",
+            "common implementations": "OAuth 2.0, JSON Web Tokens (JWT)"
+        },
+        {
+            "name": "API Gateway with Security Enforcement",
+            "description": "Enforces security policies like authentication, authorization, and throttling at the gateway level.",
+            "advantage": "Centralized control over access policies; reduces code duplication.",
+            "disadvantage": "Can add latency; complex to manage at scale.",
+            "common implementations": "Kong, AWS API Gateway, Apigee"
+        },
+        {
+            "name": "Claims-Based Authorization",
+            "description": "Uses claims in tokens (e.g., user role, tenant ID) to dynamically enforce fine-grained access control.",
+            "advantage": "Flexible and scalable access control model.",
+            "disadvantage": "Requires consistent token parsing and claim validation.",
+            "common implementations": "JWT Claims with role-based access in .NET or Spring Security"
+        },
+        {
+            "name": "Distributed Tracing",
+            "description": "Captures trace data across service boundaries to identify bottlenecks and failures in request paths.",
+            "advantage": "Improves root cause analysis in complex systems.",
+            "disadvantage": "Adds overhead and requires proper instrumentation.",
+            "common implementations": "OpenTelemetry, Jaeger, Zipkin"
+        },
+        {
+            "name": "Log Aggregation",
+            "description": "Centralizes logs from multiple services to enable better search, analysis, and troubleshooting.",
+            "advantage": "Unified visibility into service behavior.",
+            "disadvantage": "Requires storage and indexing strategy; noisy logs may cause signal loss.",
+            "common implementations": "ELK Stack (Elasticsearch, Logstash, Kibana), Fluentd, Loki"
+        },
+        {
+            "name": "Metrics Collection and Monitoring",
+            "description": "Collects numeric performance and health indicators to drive dashboards and alerts.",
+            "advantage": "Helps track system health and trigger alerts proactively.",
+            "disadvantage": "High cardinality metrics can be expensive to process.",
+            "common implementations": "Prometheus, Grafana, CloudWatch"
+        },
+        {
+            "name": "Correlation IDs",
+            "description": "Attaches unique identifiers to requests to trace them across multiple services.",
+            "advantage": "Enables end-to-end request tracking and debugging.",
+            "disadvantage": "Requires consistent propagation across all services.",
+            "common implementations": "Custom HTTP headers, OpenTelemetry context propagation"
+        },
+        {
+            "name": "Canary Deployment",
+            "description": "Releases new versions to a small group of users first to test for issues before full rollout.",
+            "advantage": "Reduces risk and supports rollback with minimal user impact.",
+            "disadvantage": "Requires monitoring and traffic routing controls.",
+            "common implementations": "Istio, AWS CodeDeploy, Argo Rollouts"
+        },
+        {
+            "name": "Rolling Deployment",
+            "description": "Updates services incrementally by replacing one instance at a time without downtime.",
+            "advantage": "Ensures high availability during updates.",
+            "disadvantage": "Longer deployment time; harder to detect issues quickly.",
+            "common implementations": "Kubernetes rolling updates, Spinnaker, Helm"
+        },
+        {
+            "name": "Synchronous Communication",
+            "description": "Services communicate using direct request-response protocols like HTTP or gRPC.",
+            "advantage": "Simple and consistent; suitable for real-time actions.",
+            "disadvantage": "Increased coupling and latency; less scalable under load.",
+            "common implementations": "RESTful APIs, gRPC"
+        },
+        {
+            "name": "Asynchronous Communication",
+            "description": "Services send messages via queues or brokers and continue without waiting.",
+            "advantage": "Improves scalability and decouples services.",
+            "disadvantage": "Complexity in message ordering and error handling.",
+            "common implementations": "RabbitMQ, Apache Kafka, AWS SQS"
+        },
+        {
+            "name": "Event-Driven Communication",
+            "description": "Services emit events and react to them asynchronously, supporting loosely coupled systems.",
+            "advantage": "Flexible and scalable architecture.",
+            "disadvantage": "Event ordering and consistency challenges.",
+            "common implementations": "Kafka, AWS EventBridge, Azure Event Grid"
+        },
+        {
+            "name": "Service Mesh",
+            "description": "Uses a proxy layer to handle communication concerns (e.g., retries, encryption, load balancing).",
+            "advantage": "Standardizes and centralizes network logic.",
+            "disadvantage": "Complex to manage; introduces additional latency.",
+            "common implementations": "Istio, Linkerd, Consul Connect"
+        },
+        {
+            "name": "REST API",
+            "description": "Uses HTTP-based APIs for synchronous service communication with standard web protocols.",
+            "advantage": "Familiar and interoperable; easy to test.",
+            "disadvantage": "Prone to tight coupling and slower performance for complex transactions.",
+            "common implementations": "Spring Boot REST, Express.js, Flask APIs"
+        },
+        {
+            "name": "Static Content Hosting",
+            "description": "Hosts static files (HTML, CSS, JS, images, PDFs) in cloud storage with HTTP(S) access, reducing load on compute instances and enabling CDN delivery for performance and scalability.",
+            "advantage": "Reduces hosting cost by offloading static delivery from compute resources; improves scalability and performance with CDN support; simplifies updates to static assets.",
+            "disadvantage": "Requires separate deployment for static vs. dynamic content; lacks support for server-side logic; may have limitations around custom domain support or access control.",
+            "common implementations": "AWS S3 + CloudFront, Azure Blob Storage + Azure CDN, Google Cloud Storage + Cloud CDN, Netlify or Vercel for frontend frameworks"
+        },
+        {
+            "name": "Sequential Convoy",
+            "description": "Ensures messages are processed in FIFO order within each category (e.g., order ID) while allowing parallelism across categories using session or category keys.",
+            "advantage": "Maintains order of related messages; supports concurrent processing across categories; eliminates race conditions for category-specific workflows.",
+            "disadvantage": "Reduces throughput due to sequential processing per category; requires message broker with support for sessions or category locking.",
+            "common implementations": "Azure Service Bus sessions, AWS SQS FIFO with message group ID, Kafka with partition keys and ordering guarantees"
+        }
+    ],
+    "anti-patterns": [
+        {
+            "name": "ESB Usage",
+            "description": "Use of an Enterprise Service Bus (ESB) can create a single point of failure and increase coupling, violating microservice independence.",
+            "impact": [
+                "High Coupling",
+                "Single Point of Failure"
+            ],
+            "severity": "High"
+        },
+        {
+            "name": "Too Many Standards",
+            "description": "Multiple frameworks or inconsistent standards across teams reduce maintainability and coherence.",
+            "impact": [
+                "Low Maintainability",
+                "Reduced Developer Efficiency"
+            ],
+            "severity": "Medium"
+        },
+        {
+            "name": "Wrong Cuts",
+            "description": "Splitting services by technical layers (e.g., data/business/presentation) rather than by business domain boundaries.",
+            "impact": [
+                "Poor Service Cohesion",
+                "Increased Inter-service Communication"
+            ],
+            "severity": "High"
+        },
+        {
+            "name": "Not Having an API Gateway",
+            "description": "Lack of an API Gateway leads to uncontrolled direct communication among services, especially in large systems.",
+            "impact": [
+                "Security Risks",
+                "Scalability Issues"
+            ],
+            "severity": "Medium"
+        },
+        {
+            "name": "Hard-Coded Endpoints",
+            "description": "Using hardcoded IPs or ports makes services brittle to infrastructure changes and reduces scalability.",
+            "impact": [
+                "Low Flexibility",
+                "Deployment Challenges"
+            ],
+            "severity": "High"
+        },
+        {
+            "name": "API Versioning",
+            "description": "Lack of API versioning creates difficulties in managing backward compatibility.",
+            "impact": [
+                "Deployment Risks",
+                "Service Instability"
+            ],
+            "severity": "Medium"
+        },
+        {
+            "name": "Microservice Greedy",
+            "description": "Creating microservices for every feature leads to excessive fragmentation and overhead.",
+            "impact": [
+                "Overhead",
+                "Reduced Performance"
+            ],
+            "severity": "Medium"
+        },
+        {
+            "name": "Shared Persistency",
+            "description": "Two or more services sharing the same database breaks data autonomy.",
+            "impact": [
+                "Data Coupling",
+                "Violation of Service Boundaries"
+            ],
+            "severity": "High"
+        },
+        {
+            "name": "Inappropriate Service Intimacy",
+            "description": "One service accessing private data of another breaks encapsulation.",
+            "impact": [
+                "Security Risks",
+                "Tight Coupling"
+            ],
+            "severity": "High"
+        },
+        {
+            "name": "Shared Libraries",
+            "description": "Tightly coupling microservices via common libraries increases fragility and change ripple.",
+            "impact": [
+                "Coupling",
+                "Low Modularity"
+            ],
+            "severity": "Medium"
+        },
+        {
+            "name": "Cyclic Dependency",
+            "description": "Cyclic service calls increase complexity and hinder maintainability.",
+            "impact": [
+                "Complex Call Chains",
+                "Debugging Difficulty"
+            ],
+            "severity": "High"
+        }
+    ]
+}

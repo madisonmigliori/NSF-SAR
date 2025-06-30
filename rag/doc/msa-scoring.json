@@ -1,0 +1,40 @@
+{
+  "criteria": [
+    {
+      "name": "Scalability",
+      "description": "Each microservice should operate independently, enabling individual components to be scaled without affecting the entire system.",
+      "guidance": "Flag files with layers of dependencies and  function dependencies. Look for resilience patterns if implemented. Looking for configuration servers, service discovery, and api gateways.",
+      "patterns": ["Proxy", "Sequential Convoy", "Service Mesh", "Domain-Driven Design", "Transaction", "Publish/Subscribe", "Strangler Fig", "Event-Driven Communication", "Asynchronous Communication", "Smart endpoint, dumb pipes", "Message Broker", "Token-Based Authentication", "Event-Driven Autoscaling", "Auto Scaling", "Valet Key", "Priority Queue", "Gateways", "Service Discovery", "Client Side UI Composition", "Database Per Service", "Data Sharding", "Chain of Responsibility", "Command Query Responsibility Segregation", "Polyglot Persistence"]
+    },
+    {
+      "name": "Technology Diversity",
+      "description": " Different microservices can be developed using different technologies, enabling teams to choose the best tools for each task.",
+      "guidance": "Recommend if a different technology optimizes the task for a specific file. Steps taken: 1) Scan document search for imports, dependencies, build files, and package manager files 2) Verify the tools that are being used are the most optimal 3) Prompt the user with better technologies if needed and suggestions to improve the code to run more efficiently.",
+      "patterns": ["Rest API", "Business Capability", "Claims-Based Authorization", "Backends for Frontends", "Client Side UI Composition"]
+    },
+    {
+      "name": "Resilience",
+      "description": "Failure in one service should not impact others, ensuring the system continues to operate under partial failure. Identify any vulnerabilities.",
+      "guidance": "Look for resilience patterns",
+      "patterns": ["Circuit Breaker", "Retry", "fallbacks", "bulkhead", "Load Balancer", "isolated service deployment", "sidecar", "Service Mesh", "Anti-corruption Layer", "Correlation IDs", "Metrics Collections and Monitoring"," Log Aggregation","Asynchronous messaging", "Distributed Tracing", "Consumer-Driven Contracts", "Shadow Deployment", "Retry", "Message Queue", "Competing Consumers", "Schedule Agent Supervisor", "Process Manager","Timeout", "Priority Queue", "API Gateways", "Load Leveling", "Throttling", "Fallback", "Fail Fast", "Health Check"]
+    },
+    {
+      "name": "Agility",
+      "description": "​Architecture should support frequent and independent updates by separate teams",
+      "guidance": "Make sure the program can be run on different operating systems. Can look for how the program implements: containerization, databases, look for any profiles, test files, versions being used ",
+      "patterns": ["Maintainability", "Proxy", "Bulkhead", "Gateway Routing", "Rolling Deployment", "Canary Deployment", "Metrics Collections and Monitoring", "Log Aggregation", "Consumer-Driven Contracts", "Message Queue", "Cache Aside", "Dead Letter Queue", "Blue-Green Deployment", "Performance Metrics", "Saga"]
+    },
+    {
+      "name": "Cost-Effectiveness",
+      "description": "Microservices can be deployed in a containerized environment, which allows for efficient resource utilization and reduces infrastructure costs.",
+      "guidance": "Identify use of Docker, Kubernetes, or FaaS platforms, and note any resource optimization strategies. 1) Service-less functioning 2) Horizontal scaling 3) Event driven architectures",
+      "patterns": ["Sequential Convoy", "Static Content Hosting", "Stateless Service", "Gateway Routing", "Gateway Aggregation", "Publisher/Subscriber", "Retry", "Message Broker", "Message Queue", "Cache Aside", "Process Manager", "API Gateways", "Aggregator"]
+    },
+    {
+      "name": "Reusability",
+      "description": " Microservices should be shareable across applications or domains",
+      "guidance": "identify where repeated functionalities are in the program, and address how they can be condensed into a reusable function.",
+      "patterns": ["Business Capability", "Gateway Routing", "Gateway Aggregation", "Publisher/Subscriber", "Correlation IDs", "Claims-Based Authorization", "API Gateway with Security Enforcement", "Sequential Convoy"]
+    }
+  ]
+}

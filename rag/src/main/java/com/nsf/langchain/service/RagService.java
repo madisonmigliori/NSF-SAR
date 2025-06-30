@@ -44,6 +44,7 @@ public class RagService {
             throw new IllegalArgumentException("Missing repoId for context search.");
         }
         try {
+        
             ingestionService.ingestJson(jsonPath, repoId);
             log.info("JSON ingestion completed for file: {}", jsonPath);
         } catch (Exception e) {
@@ -55,9 +56,9 @@ public class RagService {
             docs = vectorStore.similaritySearch(
                 SearchRequest.builder()
                     .query(question)
-                    .topK(10)
+                    .topK(50)
                     .filterExpression(repoId)
-                    .similarityThreshold(0.3)
+                    .similarityThreshold(0.01)
                     .build()
             );
         } catch (Exception e) {
@@ -92,7 +93,6 @@ public class RagService {
                                     - Do not include any external URLs, hyperlinks, or references to third-party websites.
                                     - If the context includes external links (e.g., images from Imgur), DO NOT include them in your response. Instead, summarize their content in text.
                                     - If you don’t have enough context, say: "I don’t have enough information to answer that. Please ask questions about the given repository."
-                                    - DO NOT hallucinate.
                                 """),
                                 new UserMessage("Here is the context:\n" + context + "\n\nNow, based on that, answer this question:\n" + question)
                             );

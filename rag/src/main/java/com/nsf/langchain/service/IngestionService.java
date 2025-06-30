@@ -176,23 +176,33 @@ public class IngestionService {
     }
 
 
+   
     private void processFile(String repoId, Path repoFolder, Path path) {
-        log.debug("Reading file: {}", path);
-        final String text;
+        log.info("🔍 Processing file: {}", path);
+    
+        String text;
         try {
             text = Files.readString(path);
+            log.info("Successfully read file: {}", path);
         } catch (IOException e) {
-            log.warn("Skipping unreadable file in {}: {}", baseDir, path);
+            log.warn("Skipping unreadable file in '{}': {} ({})", baseDir, path, e.getMessage());
             return;
         }
-
-        
+    
+        // Chunking step
         List<String> chunks = TextUtils.chunkText(text, 1000, 200)
             .stream()
             .filter(chunk -> chunk != null && chunk.trim().length() >= 20)
             .toList();
+    
+        log.info("📏 Total chunks for '{}': {}", path.getFileName(), chunks.size());
+    
+        if (chunks.isEmpty()) {
+            log.warn("⚠️ No valid chunks found for '{}'. Possible reasons: file too small, chunking logic issue, or overly strict length filter.", path.getFileName());
+        }
+    
         String safePath = repoFolder.relativize(path).toString().replaceAll("[/\\\\]", "_");
-
+    
         for (int i = 0; i < chunks.size(); i++) {
             String chunk = chunks.get(i);
             Document doc = Document.builder()
@@ -200,13 +210,14 @@ public class IngestionService {
                 .metadata("file", safePath)
                 .metadata("repo", repoId)
                 .build();
-
+    
             try {
                 vectorStore.add(List.of(doc));
-                log.debug("Stored chunk {} of file {}", i, safePath);
+                log.info("Stored chunk {} of '{}'", i, safePath);
             } catch (Exception e) {
-                log.error("Failed to store doc for chunk {} of {}: {}", i, safePath, e.getMessage());
+                log.error("Failed to store doc for chunk {} of '{}': {}", i, safePath, e.getMessage());
             }
         }
     }
+    
 }
