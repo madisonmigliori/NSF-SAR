@@ -19,7 +19,7 @@ import org.springframework.boot.configurationprocessor.json.JSONArray;
 import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.stereotype.Service;
 
-import com.nsf.langchain.git.GitHubApiHello;
+import com.nsf.langchain.git.GitHubApi;
 import com.nsf.langchain.git.token.GetToken;
 import com.nsf.langchain.utils.GitUtils;
 import com.nsf.langchain.utils.RepoUtils;
@@ -35,7 +35,7 @@ public class IngestionService {
     private static final Logger log = LoggerFactory.getLogger(IngestionService.class);
     
     @Autowired
-    private VectorStore vectorStore;
+    public VectorStore vectorStore;
 
     @Value("${app.repos-dir}")
     private String baseDir;
@@ -78,30 +78,38 @@ public class IngestionService {
 
 
     public void ingestJson(Path path, String repoId) {
-        log.info("Starting json processing for ingestion: {}", path);
-
+        log.info("Starting JSON processing for ingestion: {}", path);
+    
+        String fileName = path.getFileName().toString();
+    
+        if (fileName.equalsIgnoreCase("msa-scoring.json")) {
+            ingestMsaScoringJson(path, repoId);
+            return;
+        }
+    
+        if (fileName.equalsIgnoreCase("msa-patterns.json")) {
+            ingestMsaPatternsJson(path, repoId);
+            return;
+        }
+    
         ObjectMapper objectMapper = new ObjectMapper();
-        
-        try{
+        List<Document> documents = new ArrayList<>();
+    
+        try {
             JsonNode rootNode = objectMapper.readTree(path.toFile());
-            List<Document> documents = new ArrayList<>();
-
-            flattenJson(rootNode, "", documents, path.getFileName().toString(), repoId);
-            
+            flattenJson(rootNode, "", documents, fileName, repoId);
+    
             if (!documents.isEmpty()) {
                 vectorStore.add(documents);
-                log.info("Ingested {} JSON nodes from '{}'", documents.size(), path.getFileName());
+                log.info("Ingested {} generic JSON nodes from '{}'", documents.size(), fileName);
             } else {
-                log.warn("No valid JSON nodes found for ingestion in file: {}", path);
+                log.warn("No valid JSON nodes found in file: {}", fileName);
             }
         } catch (IOException e) {
-            log.error("Failed to ingest JSON '{}': {}", path, e.getMessage());
+            log.error("Failed to ingest generic JSON '{}': {}", fileName, e.getMessage());
         }
-
-          
-    
     }
-
+    
 
     private void flattenJson(JsonNode node, String pathPrefix, List<Document> documents, String fileName, String repoId){
         if(node.isObject()){
@@ -121,6 +129,112 @@ public class IngestionService {
         }
     }
 
+    public void ingestMsaScoringJson(Path path, String repoId) {
+        log.info("Starting MSA scoring JSON ingestion for file: {}", path);
+    
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<Document> documents = new ArrayList<>();
+    
+        try {
+            JsonNode rootNode = objectMapper.readTree(path.toFile());
+            JsonNode criteriaArray = rootNode.get("criteria");
+    
+            if (criteriaArray != null && criteriaArray.isArray()) {
+                for (JsonNode criterion : criteriaArray) {
+                    String name = criterion.path("name").asText();
+                    String description = criterion.path("description").asText();
+                    String guidance = criterion.path("guidance").asText();
+    
+                    StringBuilder patterns = new StringBuilder();
+                    JsonNode patternsNode = criterion.path("patterns");
+                    if (patternsNode.isArray()) {
+                        for (JsonNode pattern : patternsNode) {
+                            patterns.append(pattern.asText()).append(", ");
+                        }
+                    }
+    
+                    String text = String.format("""
+                            Criteria Name: %s
+                            Description: %s
+                            Guidance: %s
+                            Patterns: %s
+                            """, name, description, guidance, patterns.toString());
+    
+                    Document doc = Document.builder()
+                            .text(text)
+                            .metadata("file", path.getFileName().toString())
+                            .metadata("repo", repoId)
+                            .metadata("criteria", name)
+                            .build();
+    
+                    documents.add(doc);
+                }
+            }
+    
+            if (!documents.isEmpty()) {
+                vectorStore.add(documents);
+                log.info("Ingested {} criteria from '{}'", documents.size(), path.getFileName());
+            } else {
+                log.warn("No criteria found in '{}'", path);
+            }
+    
+        } catch (IOException e) {
+            log.error("Failed to ingest MSA scoring JSON '{}': {}", path, e.getMessage());
+        }
+    }
+    
+
+    public void ingestMsaPatternsJson(Path path, String repoId) {
+        log.info("Starting MSA patterns JSON ingestion for file: {}", path);
+    
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<Document> documents = new ArrayList<>();
+    
+        try {
+            JsonNode rootNode = objectMapper.readTree(path.toFile());
+            JsonNode patternsArray = rootNode.get("patterns");
+    
+            if (patternsArray != null && patternsArray.isArray()) {
+                for (JsonNode patternNode : patternsArray) {
+                    String name = patternNode.path("name").asText();
+                    String description = patternNode.path("description").asText();
+                    String advantage = patternNode.path("advantage").asText();
+                    String disadvantage = patternNode.path("disadvantage").asText();
+                    String implementations = patternNode.path("common implementations").asText();
+    
+                    String text = String.format("""
+                            Pattern Name: %s
+                            Description: %s
+                            Advantage: %s
+                            Disadvantage: %s
+                            Common Implementations: %s
+                            """, name, description, advantage, disadvantage, implementations);
+    
+                    Document doc = Document.builder()
+                            .text(text)
+                            .metadata("file", path.getFileName().toString())
+                            .metadata("repo", repoId)
+                            .metadata("pattern", name)
+                            .build();
+    
+                    documents.add(doc);
+                }
+            }
+    
+            if (!documents.isEmpty()) {
+                vectorStore.add(documents);
+                log.info("Ingested {} patterns from '{}'", documents.size(), path.getFileName());
+            } else {
+                log.warn("No patterns found in '{}'", path);
+            }
+    
+        } catch (IOException e) {
+            log.error("Failed to ingest MSA patterns JSON '{}': {}", path, e.getMessage());
+        }
+    }
+    
+
+    
 
     public void ingestLocalPdf(String repoId, Path path) {
         try {
@@ -140,7 +254,7 @@ public class IngestionService {
     }
 
     public void ingestGitRepoAPI(String gitUrl) throws Exception {
-        GitHubApiHello repo = new GitHubApiHello();
+        GitHubApi repo = new GitHubApi();
 
         String repoId = RepoUtils.extractRepoId(gitUrl);
         BinaryTreeNode root = repo.inspectRepo(gitUrl);
@@ -178,7 +292,7 @@ public class IngestionService {
 
    
     private void processFile(String repoId, Path repoFolder, Path path) {
-        log.info("🔍 Processing file: {}", path);
+        log.info("Processing file: {}", path);
     
         String text;
         try {
@@ -189,16 +303,16 @@ public class IngestionService {
             return;
         }
     
-        // Chunking step
+     
         List<String> chunks = TextUtils.chunkText(text, 1000, 200)
             .stream()
             .filter(chunk -> chunk != null && chunk.trim().length() >= 20)
             .toList();
     
-        log.info("📏 Total chunks for '{}': {}", path.getFileName(), chunks.size());
+        log.info("Total chunks for '{}': {}", path.getFileName(), chunks.size());
     
         if (chunks.isEmpty()) {
-            log.warn("⚠️ No valid chunks found for '{}'. Possible reasons: file too small, chunking logic issue, or overly strict length filter.", path.getFileName());
+            log.warn("No valid chunks found for '{}'. Possible reasons: file too small, chunking logic issue, or overly strict length filter.", path.getFileName());
         }
     
         String safePath = repoFolder.relativize(path).toString().replaceAll("[/\\\\]", "_");

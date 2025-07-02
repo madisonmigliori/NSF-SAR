@@ -2,14 +2,12 @@ package com.nsf.langchain.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.nsf.langchain.model.Answer;
 import com.nsf.langchain.model.Question;
+import com.nsf.langchain.model.Repo;
+import com.nsf.langchain.model.Report;
 import com.nsf.langchain.service.RagService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,11 +21,10 @@ public class ChatController {
     @Autowired
     private RagService ragService;
 
- 
     @PostMapping
     @Operation(
             summary = "Chat with the controller",
-            description = "The model takes the questions and responses."
+            description = "Ask the model a question based on a specific repository's ingested context."
     )
     public ResponseEntity<Answer> chat(@RequestBody Question q) {
         try {
@@ -41,10 +38,28 @@ public class ChatController {
         }
     }
 
+    @PostMapping("/analyze")
+    @Operation(
+            summary = "Analyze a repository",
+            description = "Runs dependency extraction, architecture analysis, and gives AI recommendations for the given repo URL."
+    )
+    public ResponseEntity<Report> analyze(@RequestBody Repo gitUrl) {
+        try {
+            Report report = ragService.getReport(gitUrl.getUrl());
+            System.out.println(report);
+            return ResponseEntity.ok(report);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity
+                    .internalServerError()
+                    .body(new Report(gitUrl.getUrl(), "Error extracting dependencies.", "Error running analysis.", "Error displaying architecture.", "Error providing recommendations.", "Error displaying refactored architecture"));
+        }
+    }
+
     @GetMapping("/ping")
-     @Operation(
-            summary = "Controller's Health",
-            description = "Verifies that the RAG system is running."
+    @Operation(
+            summary = "Controller Health Check",
+            description = "Verifies that the RAG system is running and responding."
     )
     public String ping() {
         return "Status: UP";
