@@ -1,5 +1,8 @@
 package com.nsf.langchain.model;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +21,13 @@ public class Report {
     private String architectureRec;
 
 
+     private String formatDependencies(String raw) {
+        if (raw == null || raw.isBlank()) return "No dependencies found or failed to extract.";
+        return Arrays.stream(raw.split("\n"))
+                     .map(dep -> "- " + dep.trim())
+                     .collect(Collectors.joining("\n"));
+    }
+    
     public String toString(){
         return """
 
@@ -43,7 +53,7 @@ public class Report {
         
         %s
      
-        """.formatted(repoId, dependencies, anaylsis, recommendations, architecture, architectureRec);
+        """.formatted(repoId, formatDependencies(dependencies), anaylsis, recommendations, architecture, architectureRec);
 
     }
 

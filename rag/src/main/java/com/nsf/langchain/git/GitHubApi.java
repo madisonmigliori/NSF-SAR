@@ -44,9 +44,13 @@ public class GitHubApi {
         Stack<BinaryTreeNode> toVisit = new Stack<>();
         toVisit.push(root);
 
+        
+
+
         while (!toVisit.isEmpty()) {
             BinaryTreeNode current = toVisit.pop();
 
+            System.out.println("Fetching URL: " + current.url);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(current.url))
                     .header("Authorization", "Bearer " + token)
@@ -66,7 +70,9 @@ public class GitHubApi {
                     if (type.equals("dir")) {
                         BinaryTreeNode dirNode = new BinaryTreeNode(name, type, url);
                         current.addChild(current, dirNode);
+                        System.out.println("Added " + type + ": " + name + " to " + current.name);
                         toVisit.push(dirNode);
+                        
                     } else if (type.equals("file")) {
                         String downloadUrl = node.get("download_url").asText();
 
@@ -105,6 +111,7 @@ public class GitHubApi {
 
         if ("file".equals(node.type)) {
             paths.add(newPath);
+            
         }
 
         if (node.children != null) {
@@ -114,10 +121,13 @@ public class GitHubApi {
         }
     }
 
+    
+
 
     public String fetchFileContent(String user, String repo, String path) throws Exception {
     String token = new GetToken().getToken();
     String apiUrl = String.format("https://api.github.com/repos/%s/%s/contents/%s", user, repo, path);
+
 
     HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(apiUrl))
@@ -138,6 +148,12 @@ public class GitHubApi {
         log.warn("No content found for file: {}", path);
         return null;
     }
+}
+
+public List<String> listAllFilePaths(String gitUrl) throws Exception {
+    BinaryTreeNode root = inspectRepo(gitUrl);
+    GitHubApi.printTree(root, "");
+    return flattenFilePaths(root);
 }
 
 
