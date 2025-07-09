@@ -2,11 +2,15 @@ package com.nsf.langchain.utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -15,31 +19,63 @@ import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
-
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nsf.langchain.git.BinaryTreeNode;
 import com.nsf.langchain.git.GitHubApi;
 
+
 @Component
 public class ArchitectureUtils {
     private final GitHubApi gitHubApi;
     private final ObjectMapper mapper = new ObjectMapper();
+    private Map<String, List<String>> catergoryKeywords;
 
     public ArchitectureUtils(GitHubApi gitHubApi){
         this.gitHubApi = gitHubApi;
+        loadCatergoryKeywords();
     }
 
+    private void loadCatergoryKeywords() {
+
+
+        try(InputStream is = getClass().getResourceAsStream("/static/dependency-catergories.json")) {
+            if (is == null) {
+                throw new RuntimeException("Json not found");
+            }
+            catergoryKeywords = mapper.readValue(is, new TypeReference<Map<String, List<String>>>() {});
+            System.out.println("Dependencies Catergories: " + catergoryKeywords.keySet());
+        } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new RuntimeException("Failed to load catergories json");
+                }
+    }
+
+
+
+    private String categorizeDependency(String dependencies) {
+        String dep = dependencies.toLowerCase();
+        for(Map.Entry<String, List<String>> entry : catergoryKeywords.entrySet()){
+            for(String keyword: entry.getValue()){
+                if (dep.contains(keyword.toLowerCase())){
+                    return entry.getKey();
+                }
+            }
+        }
+       return "Other";
+    }
 
     public String getDependency(String user, String repo) throws Exception {
     List<String> allDependencies = new ArrayList<>();
     
     Set<String> filesToCheck = Set.of(
         "pom.xml", "build.gradle", "build.gradle.kts",
-        "package.json", "yarn.lock", "pnpm-lock.yaml", "package-lock.json",
+        "package.json", "package-lock.json",
         "requirements.txt", "pyproject.toml", "Pipfile", "setup.py",
-        "Cargo.toml", "go.mod", ".csproj", "Gemfile", "CMakeLists.txt", "Makefile"
+        "Cargo.toml", "go.mod", "Gopkg.toml", ".csproj", "Gemfile", "CMakeLists.txt", "Makefile"
     );
     
     String gitUrl = String.format("https://github.com/%s/%s.git", user, repo);
@@ -51,10 +87,10 @@ public class ArchitectureUtils {
         String fileName = relativePath.substring(relativePath.lastIndexOf('/') + 1);
         if (filesToCheck.contains(fileName)) {
             try {
-                System.out.println("Fetching and parsing: " + relativePath);
+                // System.out.println("Fetching and parsing: " + relativePath);
                 String content = gitHubApi.fetchFileContent(user, repo, relativePath);
                 if (content == null || content.isEmpty()) {
-                    System.out.println("Empty content for file: " + relativePath);
+                    // System.out.println("Empty content for file: " + relativePath);
                     continue;
                 }
 
@@ -84,7 +120,27 @@ public class ArchitectureUtils {
                     case "setup.py":
                         allDependencies.addAll(parseSetupPy(content));
                         break;
-                    // Add more parsers as needed
+                    case "go.mod":
+                        allDependencies.addAll(parseGoMod(content));
+                        break;
+                    case "Gopkg.toml":
+                        allDependencies.addAll(parseGopkgToml(content));
+                        break;
+                    case "package-lock.json":
+                        allDependencies.addAll(parsePackageLockJson(content));
+                        break;
+                    case "Pipfile":
+                        allDependencies.addAll(parsePipfile(content));
+                        break;
+                    case "Cargo.toml":
+                        allDependencies.addAll(parseCargoToml(content));
+                        break;
+                    case "CMakeLists.txt":
+                        allDependencies.addAll(parseCMakeLists(content));
+                        break;
+                    case "Makefile":
+                        allDependencies.addAll(parseMakefile(content));
+                        break;
                     default:
                         System.out.println("No parser defined for file: " + fileName);
                         break;
@@ -95,13 +151,26 @@ public class ArchitectureUtils {
                 e.printStackTrace();
             }
         }
-    }
-    
-    return allDependencies.isEmpty() ? "No build dependencies found." : String.join("\n", allDependencies);
-}
 
+    }
+    Map<String, List<String>> categorized = new LinkedHashMap<>();
+    for (String dep : allDependencies) {
+        String cat = categorizeDependency(dep);
+        categorized.computeIfAbsent(cat, k -> new ArrayList<>()).add(dep);
+    }
+
+   StringBuilder result = new StringBuilder();
+
+        for (Map.Entry<String, List<String>> entry : categorized.entrySet()) {
+            result.append(entry.getKey()).append(":\n");
+            Set<String> uniqueDeps = new LinkedHashSet<>(entry.getValue());
     
-       
+        for (String dep : uniqueDeps) {
+            result.append("  - ").append(dep).append("\n");
+            }
+        }
+        return allDependencies.isEmpty() ? "No build dependencies found." : result.toString();
+}
 
     private List<String> parsePomXml(String pomXmlContent) throws Exception {
         List<String> dependencies = new ArrayList<>();
@@ -224,31 +293,257 @@ public class ArchitectureUtils {
         return dependencies;
     }
     
+    private List<String> parseGoMod(String content) {
+        List<String> dependencies = new ArrayList<>();
+        boolean inRequireBlock = false;
     
-    
-    public String displayArchitecture(BinaryTreeNode node, String url, boolean isLast) {
-        StringBuilder diagram = new StringBuilder();
-        buildTreeDiagram(node, "", isLast, diagram);
-        return diagram.toString();
+        for (String line : content.split("\n")) {
+            line = line.trim();
+            if (line.startsWith("require (")) {
+                inRequireBlock = true;
+                continue;
+            }
+            if (inRequireBlock && line.equals(")")) {
+                inRequireBlock = false;
+                continue;
+            }
+            if (inRequireBlock) {
+
+                if (!line.isEmpty()) {
+                    dependencies.add(line);
+                }
+            } else {
+                if (line.startsWith("require ")) {
+                    String depLine = line.substring("require ".length()).trim();
+                    dependencies.add(depLine);
+                }
+            }
+        }
+        return dependencies;
     }
 
-    private void buildTreeDiagram(BinaryTreeNode node, String prefix, boolean isLast, StringBuilder diagram) {
-        if (node == null) return;
+    private List<String> parseGopkgToml(String content) {
+        List<String> dependencies = new ArrayList<>();
+        String[] lines = content.split("\n");
+        String currentName = null;
+        String currentVersionOrBranch = null;
+    
+        for (String line : lines) {
+            line = line.trim();
+            if (line.startsWith("name =")) {
+                currentName = line.split("=", 2)[1].trim().replaceAll("\"", "");
+            } else if (line.startsWith("version =") || line.startsWith("branch =")) {
+                currentVersionOrBranch = line.split("=", 2)[1].trim().replaceAll("\"", "");
+            } else if (line.isEmpty() && currentName != null) {
+                String dep = currentName;
+                if (currentVersionOrBranch != null) {
+                    dep += ":" + currentVersionOrBranch;
+                }
+                dependencies.add(dep);
+                currentName = null;
+                currentVersionOrBranch = null;
+            }
+        }
+       
+        if (currentName != null) {
+            String dep = currentName;
+            if (currentVersionOrBranch != null) {
+                dep += ":" + currentVersionOrBranch;
+            }
+            dependencies.add(dep);
+        }
+    
+        return dependencies;
+    }
+    
+    
+    private List<String> parsePackageLockJson(String jsonContent) throws Exception {
+        List<String> dependencies = new ArrayList<>();
+        JsonNode rootNode = mapper.readTree(jsonContent);
+        JsonNode depsNode = rootNode.get("dependencies");
+    
+        if (depsNode != null) {
+            depsNode.fields().forEachRemaining(entry -> {
+                String name = entry.getKey();
+                JsonNode versionNode = entry.getValue().get("version");
+                String version = versionNode != null ? versionNode.asText() : "unknown";
+                dependencies.add(name + ":" + version);
+            });
+        }
+        return dependencies;
+    }
+    
 
+    private List<String> parsePipfile(String content) {
+        List<String> dependencies = new ArrayList<>();
+        boolean inPackages = false;
+        for (String line : content.split("\n")) {
+            line = line.trim();
+            if (line.startsWith("[packages]")) {
+                inPackages = true;
+                continue;
+            }
+            if (line.startsWith("[")) {
+                inPackages = false;
+            }
+            if (inPackages && line.contains("=")) {
+                String[] parts = line.split("=");
+                dependencies.add(parts[0].trim() + ":" + parts[1].trim().replaceAll("\"", ""));
+            }
+        }
+        return dependencies;
+    }
+
+    private List<String> parseCargoToml(String content) {
+        List<String> dependencies = new ArrayList<>();
+        boolean inDeps = false;
+        for (String line : content.split("\n")) {
+            line = line.trim();
+            if (line.equals("[dependencies]")) {
+                inDeps = true;
+                continue;
+            }
+            if (line.startsWith("[") && !line.equals("[dependencies]")) {
+                inDeps = false;
+            }
+            if (inDeps && line.contains("=")) {
+                String[] parts = line.split("=");
+                dependencies.add(parts[0].trim() + ":" + parts[1].trim().replaceAll("\"", ""));
+            }
+        }
+        return dependencies;
+    }
+    
+
+    private List<String> parseCMakeLists(String content) {
+        List<String> dependencies = new ArrayList<>();
+        String[] lines = content.split("\n");
+    
+        for (String line : lines) {
+            line = line.trim();
+            if (line.startsWith("#") || line.isEmpty()) continue;
+    
+            if (line.startsWith("find_package(")) {
+                int start = "find_package(".length();
+                int end = line.indexOf(")", start);
+                if (end > start) {
+                    String dep = line.substring(start, end).split(" ")[0].trim();
+                    dependencies.add("find_package:" + dep);
+                }
+            }
+    
+            if (line.startsWith("add_subdirectory(")) {
+                int start = "add_subdirectory(".length();
+                int end = line.indexOf(")", start);
+                if (end > start) {
+                    String dir = line.substring(start, end).trim();
+                    dependencies.add("subdir:" + dir);
+                }
+            }
+    
+            if (line.startsWith("target_link_libraries(")) {
+                int start = "target_link_libraries(".length();
+                int end = line.indexOf(")", start);
+                if (end > start) {
+                    String[] parts = line.substring(start, end).trim().split("\\s+");
+                    for (int i = 1; i < parts.length; i++) {
+                        dependencies.add("link:" + parts[i]);
+                    }
+                }
+            }
+        }
+    
+        return dependencies;
+    }
+    
+
+    private List<String> parseMakefile(String content) {
+        List<String> dependencies = new ArrayList<>();
+        String[] lines = content.split("\n");
+    
+        for (String line : lines) {
+            line = line.trim();
+            if (line.startsWith("#") || line.isEmpty()) continue;
+    
+            if (line.startsWith("include")) {
+                String[] parts = line.split("\\s+");
+                if (parts.length > 1) {
+                    dependencies.add("include:" + parts[1]);
+                }
+            }
+    
+            if (line.contains("gcc") || line.contains("g++") || line.contains("clang")) {
+                if (line.contains("-l")) {
+                    String[] parts = line.split("\\s+");
+                    for (String part : parts) {
+                        if (part.startsWith("-l")) {
+                            dependencies.add("lib:" + part.substring(2));
+                        }
+                    }
+                }
+                if (line.contains(".so") || line.contains(".a")) {
+                    String[] parts = line.split("\\s+");
+                    for (String part : parts) {
+                        if (part.endsWith(".so") || part.endsWith(".a")) {
+                            dependencies.add("libfile:" + part);
+                        }
+                    }
+                }
+            }
+        }
+    
+        return dependencies;
+    }
+    
+
+    public String displayArchitecture(BinaryTreeNode node) {
+        StringBuilder diagram = new StringBuilder();
+        buildTreeDiagram(node, "", true, diagram);
+        return diagram.toString();
+    }
+    
+    private void buildTreeDiagram(BinaryTreeNode node, String prefix, boolean isTail, StringBuilder diagram) {
+        if (node == null) return;
+    
         diagram.append(prefix)
-               .append(isLast ? "└── " : "├── ")
+               .append(isTail ? "└── " : "├── ")
                .append(node.type)
-               .append(": ")
+               .append(" ")
                .append(node.name)
                .append("\n");
-
+    
         if (node.children != null && !node.children.isEmpty()) {
             for (int i = 0; i < node.children.size(); i++) {
-                boolean lastChild = (i == node.children.size() - 1);
-                buildTreeDiagram(node.children.get(i), prefix + (isLast ? "    " : "│   "), lastChild, diagram);
+                boolean last = (i == node.children.size() - 1);
+                buildTreeDiagram(node.children.get(i), prefix + (isTail ? "    " : "│   "), last, diagram);
             }
         }
     }
+    
+    
+    // public String displayArchitecture(BinaryTreeNode node, String url, boolean isLast) {
+    //     StringBuilder diagram = new StringBuilder();
+    //     buildTreeDiagram(node, "", isLast, diagram);
+    //     return diagram.toString();
+    // }
+
+    // private void buildTreeDiagram(BinaryTreeNode node, String prefix, boolean isLast, StringBuilder diagram) {
+    //     if (node == null) return;
+
+    //     diagram.append(prefix)
+    //            .append(isLast ? "└── " : "├── ")
+    //            .append(node.type)
+    //            .append(": ")
+    //            .append(node.name)
+    //            .append("\n");
+
+    //     if (node.children != null && !node.children.isEmpty()) {
+    //         for (int i = 0; i < node.children.size(); i++) {
+    //             boolean lastChild = (i == node.children.size() - 1);
+    //             buildTreeDiagram(node.children.get(i), prefix + (isLast ? "    " : "│   "), lastChild, diagram);
+    //         }
+    //     }
+    // }
 
     public void buildTree(BinaryTreeNode node, Path path) throws IOException {
     try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {

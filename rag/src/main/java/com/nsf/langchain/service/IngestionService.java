@@ -24,6 +24,9 @@ import com.nsf.langchain.git.token.GetToken;
 import com.nsf.langchain.utils.GitUtils;
 import com.nsf.langchain.utils.RepoUtils;
 import com.nsf.langchain.utils.TextUtils;
+
+import jakarta.annotation.PostConstruct;
+
 import com.nsf.langchain.utils.PdfUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,6 +45,17 @@ public class IngestionService {
 
     @Value("${app.allowed-extensions}")
     private String allowedExtensions;
+
+    @PostConstruct
+    public void initIngestion() {
+    String repoId = "base";
+    Path scoringPath = Paths.get("doc", "msa-scoring.json");
+    Path patternsPath = Paths.get("doc", "msa-patterns.json");
+
+    ingestMsaScoringJson(scoringPath, repoId);
+    ingestMsaPatternsJson(patternsPath, repoId);
+}
+
 
 
     public void ingestRepo(String gitUrl) throws Exception {
@@ -129,6 +143,7 @@ public class IngestionService {
         }
     }
 
+
     public void ingestMsaScoringJson(Path path, String repoId) {
         log.info("Starting MSA scoring JSON ingestion for file: {}", path);
     
@@ -136,6 +151,10 @@ public class IngestionService {
         List<Document> documents = new ArrayList<>();
     
         try {
+            if (!Files.exists(path)) {
+                log.error("File not found: {}", path);
+                return;
+            }            
             JsonNode rootNode = objectMapper.readTree(path.toFile());
             JsonNode criteriaArray = rootNode.get("criteria");
     
@@ -144,6 +163,7 @@ public class IngestionService {
                     String name = criterion.path("name").asText();
                     String description = criterion.path("description").asText();
                     String guidance = criterion.path("guidance").asText();
+                    String weight = criterion.path("weight").asText();
     
                     StringBuilder patterns = new StringBuilder();
                     JsonNode patternsNode = criterion.path("patterns");
@@ -158,7 +178,8 @@ public class IngestionService {
                             Description: %s
                             Guidance: %s
                             Patterns: %s
-                            """, name, description, guidance, patterns.toString());
+                            Weight: %s
+                            """, name, description, guidance, patterns.toString(), weight);
     
                     Document doc = Document.builder()
                             .text(text)
@@ -170,10 +191,30 @@ public class IngestionService {
                     documents.add(doc);
                 }
             }
+
+            for (Document doc : documents) {
+                log.info("Doc metadata file: {}, repo: {}", doc.getMetadata().get("file"), doc.getMetadata().get("repo"));
+            }
+            
+
+            for (Document doc : documents) {
+                log.debug("Indexed doc -> file: {}, repo: {}, keys: {}", 
+                    doc.getMetadata().get("file"),
+                    doc.getMetadata().get("repo"),
+                    doc.getMetadata().keySet()
+                );
+            }
+            
+            
+
     
             if (!documents.isEmpty()) {
                 vectorStore.add(documents);
                 log.info("Ingested {} criteria from '{}'", documents.size(), path.getFileName());
+                debugVectorStoreDocs();
+            List<Document> test = vectorStore.similaritySearch("repo == 'test-repo'");
+log.info("Test results: {}", test.size());
+test.forEach(doc -> log.info("Found: {}", doc.getMetadata()));
             } else {
                 log.warn("No criteria found in '{}'", path);
             }
@@ -184,6 +225,7 @@ public class IngestionService {
     }
     
 
+
     public void ingestMsaPatternsJson(Path path, String repoId) {
         log.info("Starting MSA patterns JSON ingestion for file: {}", path);
     
@@ -191,6 +233,10 @@ public class IngestionService {
         List<Document> documents = new ArrayList<>();
     
         try {
+            if (!Files.exists(path)) {
+                log.error("File not found: {}", path);
+                return;
+            }            
             JsonNode rootNode = objectMapper.readTree(path.toFile());
             JsonNode patternsArray = rootNode.get("patterns");
     
@@ -220,10 +266,31 @@ public class IngestionService {
                     documents.add(doc);
                 }
             }
+
+            for (Document doc : documents) {
+                log.info("Doc metadata file: {}, repo: {}", doc.getMetadata().get("file"), doc.getMetadata().get("repo"));
+            }
+            
+
+            for (Document doc : documents) {
+                log.debug("Indexed doc -> file: {}, repo: {}, keys: {}", 
+                    doc.getMetadata().get("file"),
+                    doc.getMetadata().get("repo"),
+                    doc.getMetadata().keySet()
+                );
+            }
+
+           
+            
     
             if (!documents.isEmpty()) {
                 vectorStore.add(documents);
                 log.info("Ingested {} patterns from '{}'", documents.size(), path.getFileName());
+                debugVectorStoreDocs();
+          
+                List<Document> test = vectorStore.similaritySearch("repo == 'test-repo'");
+                log.info("Test results: {}", test.size());
+                test.forEach(doc -> log.info("Found: {}", doc.getMetadata()));
             } else {
                 log.warn("No patterns found in '{}'", path);
             }
@@ -282,6 +349,31 @@ public class IngestionService {
 
 
     }
+
+    public void debugVectorStoreDocs(){
+        log.info("Debug: Listing all the docs in vector store.");
+
+        List<Document> allDocs = vectorStore.similaritySearch("");
+
+        if(allDocs == null || allDocs.isEmpty()){
+            log.warn("Vector store is empty");
+            return;
+        }
+
+        for(int i = 0; i < allDocs.size(); i++){
+            Document doc = allDocs.get(i);
+            log.info("Doc {}: \nText: {}\nMetadata: {}\n", i + 1, preview(doc.getText()), doc.getMetadata());
+        }
+
+        log.info("Doc size: {}", allDocs.size());
+
+    }
+
+    private String preview(String text){
+        return text.length() > 200 ? text.substring(0, 200) +  "..." : text;
+
+    }
+
 
 
     private boolean hasAllowedExtension(Path path) {

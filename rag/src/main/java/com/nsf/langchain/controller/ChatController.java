@@ -1,5 +1,7 @@
 package com.nsf.langchain.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +23,8 @@ public class ChatController {
     @Autowired
     private RagService ragService;
 
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
+
     @PostMapping
     @Operation(
             summary = "Chat with the controller",
@@ -39,22 +43,29 @@ public class ChatController {
     }
 
     @PostMapping("/analyze")
-    @Operation(
-            summary = "Analyze a repository",
-            description = "Runs dependency extraction, architecture analysis, and gives AI recommendations for the given repo URL."
-    )
-    public ResponseEntity<Report> analyze(@RequestBody Repo gitUrl) {
-        try {
-            Report report = ragService.getReport(gitUrl.getUrl());
-            System.out.println(report);
-            return ResponseEntity.ok(report);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity
-                    .internalServerError()
-                    .body(new Report(gitUrl.getUrl(), "Error extracting dependencies.", "Error running analysis.", "Error displaying architecture.", "Error providing recommendations.", "Error displaying refactored architecture"));
-        }
+@Operation(
+    summary = "Analyze a repository",
+    description = "Runs dependency extraction, architecture analysis, and gives AI recommendations for the given repo URL."
+)
+public ResponseEntity<Report> analyze(@RequestBody Repo gitUrl) {
+    try {
+        Report report = ragService.getReport(gitUrl.getUrl());
+        return ResponseEntity.ok(report);
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.internalServerError().body(
+            new Report(
+                gitUrl.getUrl(),
+                "Error extracting dependencies.",
+                "Error running analysis.",
+                "Error displaying architecture.",
+                "Error providing recommendations.",
+                "Error identifying service boundary.",
+                "Error displaying refactored architecture"
+            )
+        );
     }
+}
 
     @GetMapping("/ping")
     @Operation(

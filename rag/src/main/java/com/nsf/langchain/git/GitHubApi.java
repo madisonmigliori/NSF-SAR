@@ -14,8 +14,10 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 import java.util.Base64;
+import java.util.HashMap;
 
 
 @Service
@@ -49,8 +51,7 @@ public class GitHubApi {
 
         while (!toVisit.isEmpty()) {
             BinaryTreeNode current = toVisit.pop();
-
-            System.out.println("Fetching URL: " + current.url);
+ 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(current.url))
                     .header("Authorization", "Bearer " + token)
@@ -70,7 +71,6 @@ public class GitHubApi {
                     if (type.equals("dir")) {
                         BinaryTreeNode dirNode = new BinaryTreeNode(name, type, url);
                         current.addChild(current, dirNode);
-                        System.out.println("Added " + type + ": " + name + " to " + current.name);
                         toVisit.push(dirNode);
                         
                     } else if (type.equals("file")) {
@@ -97,6 +97,8 @@ public class GitHubApi {
 
         return root;
     }
+
+   
 
     public List<String> flattenFilePaths(BinaryTreeNode root) {
         List<String> paths = new ArrayList<>();
@@ -156,6 +158,37 @@ public List<String> listAllFilePaths(String gitUrl) throws Exception {
     return flattenFilePaths(root);
 }
 
+public Map<String, String> extractCode(BinaryTreeNode root){
+    Map<String, String> codeFiles = new HashMap<>();
+    collectCodeFiles(root,"", codeFiles);
+    return codeFiles;
+}
+
+private void collectCodeFiles(BinaryTreeNode node, String path, Map<String,String> codeFiles){
+    if(node == null){
+        return;
+    }
+
+    String fullPath = path.isEmpty() ? node.name : path + "/" + node.name;
+
+    if("file".equals(node.type) && isCodeFile(node.name)){
+        codeFiles.put(fullPath, node.content);
+    }
+    if(node.children != null){
+        for (BinaryTreeNode child : node.children){
+            collectCodeFiles(child, fullPath, codeFiles);
+        }
+    }
+}
+
+private boolean isCodeFile(String fileName) {
+    return fileName.endsWith(".java") || fileName.endsWith(".py") ||
+           fileName.endsWith(".js") || fileName.endsWith(".ts") ||
+           fileName.endsWith(".go") || fileName.endsWith(".rs") ||
+           fileName.endsWith(".cpp") || fileName.endsWith(".hpp") ||
+           fileName.endsWith(".h") || fileName.endsWith(".rb") ||
+           fileName.endsWith(".jsx") || fileName.endsWith(".tsx");
+}
 
 
     public static void printTree(BinaryTreeNode node, String indent) {

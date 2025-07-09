@@ -15,46 +15,54 @@ import lombok.Setter;
 public class Report {
     private String repoId;
     private String dependencies;
-    private String anaylsis;
+    private String analysis;
     private String architecture;
+    private String serviceBoundary;
     private String recommendations;
     private String architectureRec;
 
 
-     private String formatDependencies(String raw) {
-        if (raw == null || raw.isBlank()) return "No dependencies found or failed to extract.";
-        return Arrays.stream(raw.split("\n"))
+     private String formatDependencies(String dependencies) {
+        if (dependencies == null || dependencies.isBlank()) return "No dependencies found or failed to extract.";
+        return Arrays.stream(dependencies.split("\n"))
                      .map(dep -> "- " + dep.trim())
                      .collect(Collectors.joining("\n"));
     }
     
-    public String toString(){
+    @Override
+    public String toString() {
         return """
+            === Repository Analysis Report ===
+    
+            Repository ID: %s
+    
+            --- Dependency Overview ---
+            %s
+    
+            --- Architecture Analysis ---
+            %s
+    
+            --- Current Architecture Diagram ---
+            %s
+    
+            --- Identified Service Boundaries ---
+            %s
+    
+            --- Recommended Improvements ---
+            %s
 
-        Hey I have done an extensive anaylsis on your repository:  %s. 
-
-        Here is a list of all your dependencies:
-        
-        %s
-
-        Architecture Anaylsis: 
-        
-        %s
-
-        Recommendations to improve your architecture:
-        
-        %s
-
-        Current Architecture: 
-        
-        %s
-
-        Refactored Architecture: 
-        
-        %s
-     
-        """.formatted(repoId, formatDependencies(dependencies), anaylsis, recommendations, architecture, architectureRec);
-
+            --- Refactored Architecture Plan ---
+            %s
+            """.formatted(
+            repoId,
+            dependencies,
+            analysis,
+            architecture,
+            serviceBoundary,
+            recommendations,
+            architectureRec
+        );
     }
-
+    
+    
 }
