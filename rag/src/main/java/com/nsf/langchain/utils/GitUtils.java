@@ -71,6 +71,13 @@ public class GitUtils {
 
     public void fetchContents(String apiUrl, BinaryTreeNode root) {
         try {
+
+            String token = System.getenv("GITHUB_PAT");
+            if (token == null || token.isEmpty()) {
+                throw new IllegalStateException("GitHub token not found in environment variable 'GITHUB_PAT'");
+            }
+            System.out.println("Using GitHub token: " + (token != null ? "YES" : "NO"));
+        
         HttpHeaders headers = new HttpHeaders();
         headers.set("Accept", "application/vnd.github.v3+json");
         HttpEntity<Void> entity = new HttpEntity<>(headers);

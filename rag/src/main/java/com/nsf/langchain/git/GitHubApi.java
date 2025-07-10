@@ -70,7 +70,7 @@ public class GitHubApi {
 
                     if (type.equals("dir")) {
                         BinaryTreeNode dirNode = new BinaryTreeNode(name, type, url);
-                        current.addChild(current, dirNode);
+                        current.children.add(dirNode); 
                         toVisit.push(dirNode);
                         
                     } else if (type.equals("file")) {
@@ -85,7 +85,7 @@ public class GitHubApi {
                         HttpResponse<String> fileResponse = client.send(fileRequest, HttpResponse.BodyHandlers.ofString());
 
                         BinaryTreeNode fileNode = new BinaryTreeNode(name, type, url, fileResponse.body());
-                        current.addChild(current, fileNode);
+                        current.children.add(fileNode);
                     } else {
                         log.warn("Unknown content type '{}' for file '{}'", type, name);
                     }
@@ -127,8 +127,15 @@ public class GitHubApi {
 
 
     public String fetchFileContent(String user, String repo, String path) throws Exception {
-    String token = new GetToken().getToken();
+   
+    String token = System.getenv("GITHUB_PAT");
+    if (token == null || token.isEmpty()) {
+        throw new IllegalStateException("GitHub token not found in environment variable 'GITHUB_PAT'");
+    }
     String apiUrl = String.format("https://api.github.com/repos/%s/%s/contents/%s", user, repo, path);
+    System.out.println("Using GitHub token: " + (token != null ? "YES" : "NO"));
+
+    
 
 
     HttpRequest request = HttpRequest.newBuilder()
@@ -151,6 +158,7 @@ public class GitHubApi {
         return null;
     }
 }
+
 
 public List<String> listAllFilePaths(String gitUrl) throws Exception {
     BinaryTreeNode root = inspectRepo(gitUrl);

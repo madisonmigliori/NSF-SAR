@@ -7,9 +7,11 @@ import java.security.Provider.Service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -19,11 +21,40 @@ import org.testcontainers.shaded.org.apache.commons.lang3.arch.Processor.Arch;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.regex.Pattern;
 
 @Component
 public class ServiceBoundaryUtils {
 
     public record ServiceBoundary(String filePath, String language,String layer, String indicator, String snippet){}
+
+    private static final Pattern API_PATTERN = Pattern.compile(
+    "(?i)\\b(@RestController|@Controller|@RequestMapping|@GetMapping|@PostMapping|@app\\.route\\(|@blueprint\\.route\\(|routes\\.draw" +
+    "|express\\.Router|router\\.|http\\.HandleFunc|mux\\.HandleFunc|gin\\.Engine|#\\[get\\(|#\\[post\\(|Controller\\b|route\\b|endpoint\\b|handler\\b)\\b"
+);
+
+private static final Pattern BUSINESS_PATTERN = Pattern.compile(
+    "(?i)\\b(@Service|@Component|Service\\b|useCase\\b|useCases\\b|BusinessLogic\\b|Manager\\b|Handler\\b|Interactor\\b" +
+    "|\\w+Service\\b|\\w+Manager\\b|\\w+Interactor\\b|\\w+Handler\\b)\\b"
+);
+
+private static final Pattern DATA_PATTERN = Pattern.compile(
+    "(?i)\\b(@Repository|Repository\\b|@Entity|Entity\\b|Model\\b|Schema\\b|DAO\\b|DB\\b|database\\b|CrudRepository\\b|JpaRepository\\b" +
+    "|sql\\b|ORM\\b|sqlalchemy|diesel::|Mongoose|ActiveRecord|GORM|pydantic|Prisma)\\b"
+);
+
+private static final Pattern PRESENTATION_PATTERN = Pattern.compile(
+    "(?i)\\b(View\\b|Page\\b|Component\\b|template\\b|render\\b|React\\b|Angular\\b|Vue\\b|useEffect\\b|useState\\b|Fragment\\b" +
+    "|createElement|export default\\b|FlaskForm|yew::|\\.jsx|\\.tsx|\\.vue|Screen\\b)\\b"
+);
+
+private static final Pattern SHARED_PATTERN = Pattern.compile(
+    "(?i)\\b(Logger\\b|Validator\\b|Utils?\\b|Helper\\b|Exception\\b|Error\\b|Config\\b|Constants\\b|Settings\\b" +
+    "|Common\\b|Middleware\\b|Filter\\b|Interceptor\\b|Adapter\\b|Transformer\\b|Bridge\\b|Base\\b|Shared\\b|Wrapper\\b|Factory\\b|Strategy\\b)\\b"
+);
+
+    
+
 
     public static class ArchitectureMap{
         public static class LayeredService {
@@ -71,18 +102,26 @@ public class ServiceBoundaryUtils {
             return list;
         }
 
+
     public void printLayers() {
         services.forEach((service, layers) -> {
-            System.out.println("Service: "+ service);
-            System.out.println("Presentation: " + layers.presentation);
-            System.out.println("API: " + layers.api);
-            System.out.println("Business: " + layers.business);
-            System.out.println("Data: " + layers.data);
-            System.out.println("Shared: " + layers.shared);
-            System.out.println();
-
+            System.out.println("Service: " + service);
+    
+            if (!layers.presentation.isEmpty())
+                System.out.println("Presentation: " + layers.presentation);
+            if (!layers.api.isEmpty())
+                System.out.println("API: " + layers.api);
+            if (!layers.business.isEmpty())
+                System.out.println("Business: " + layers.business);
+            if (!layers.data.isEmpty())
+                System.out.println("Data: " + layers.data);
+            if (!layers.shared.isEmpty())
+                System.out.println("Shared: " + layers.shared);
+    
+            System.out.println(); // Spacer between services
         });
     }
+    
     }
 
     public List<ServiceBoundary> extractCode(Path rootPath) throws IOException{
@@ -161,70 +200,153 @@ public class ServiceBoundaryUtils {
     }
     
 
-    private String inferLayer(String indicator) {
-        if (indicator.matches("(?i).*(@RestController|express\\.Router|router\\.|@app\\.route|Routes\\.draw).*")) return "api";
-        if (indicator.matches("(?i).*(@Service|Service|impl|useCases|business|Manager|Handler).*")) return "business";
-        if (indicator.matches("(?i).*(@Repository|ActiveRecord|Repository|sql|ORM|DB|Model|DAO).*")) return "data";
-        if (indicator.matches("(?i).*(function .*Component|React|Page|useEffect|useState|\\.jsx|\\.tsx).*")) return "presentation";
-        if (indicator.matches("(?i).*(Logger|Validator|Utils|Helper|Exception|Config|Constants|Settings|Util|Common|Middleware|Filter|Interceptor|Adapter|Transformer).*")) 
-            return "shared";
     
-        return "unknown";
-    }
+private String inferLayer(String indicator) {
+    if (indicator == null || indicator.isBlank()) return "unknown";
+    String trimmed = indicator.trim();
+
+    if (API_PATTERN.matcher(trimmed).find()) return "api";
+    if (BUSINESS_PATTERN.matcher(trimmed).find()) return "business";
+    if (DATA_PATTERN.matcher(trimmed).find()) return "data";
+    if (PRESENTATION_PATTERN.matcher(trimmed).find()) return "presentation";
+    if (SHARED_PATTERN.matcher(trimmed).find()) return "shared";
+
+    return "unknown";
+}
+
     
 
     private List<ServiceBoundary> extractJava(String path, String content){
         return matchPatterns(path, content, "Java", List.of(
-            "@RestController", "@Service", "@Respository", 
+            // API Layer
+            "@RestController", "@Controller", "@RequestMapping", "@GetMapping", "@PostMapping",
+            // Business Layer
+            "@Service", "@Component", "Manager", "Handler", "UseCase", "BusinessLogic",
+            // Data Layer
+            "@Repository", "Entity", "JpaRepository", "CrudRepository", "DAO", "Model", "Schema",
+            // Presentation Layer
+            "public class \\w+Controller", "public class \\w+View", "public class \\w+Page",
+            // Shared/Common Utilities
+            "Logger", "Validator", "Utils", "Helper", "Exception", "Config", "Constants", "Settings",
+            // General Java
             "public class \\w+", "interface \\w+"
         ));
     }
-
+    
     private List<ServiceBoundary> extractPy(String path, String content){
         return matchPatterns(path, content, "Python", List.of(
-            "@app.router\\([^]+\\)", "class \\w+", "def \\w+\\(", 
-            "sqlalchemy", "pydantic"
+            // API Layer
+            "@app\\.route\\(", "@blueprint\\.route\\(", "Flask", "FastAPI",
+            // Business Layer
+            "class \\w+Service", "class \\w+Manager", "def \\w+_service", "def \\w+_handler",
+            // Data Layer
+            "class \\w+Model", "class \\w+Schema", "sqlalchemy", "pydantic", "BaseModel",
+            // Presentation Layer
+            "def \\w+_view", "render_template", "FlaskForm",
+            // Shared
+            "Logger", "Validator", "Utils", "Helper", "Exception", "Config", "Constants", "Settings",
+            // General Python
+            "class \\w+", "def \\w+\\("
         ));
     }
-
+    
     private List<ServiceBoundary> extractJs(String path, String content){
         return matchPatterns(path, content, "Javascript", List.of(
-            "express\\.Router\\(\\)", "app\\.get\\(", "router\\.\\w+\\(", 
-            "function \\w+", "class \\w+"
+            // API Layer
+            "express\\.Router\\(\\)", "app\\.get\\(", "app\\.post\\(", "router\\.\\w+\\(", 
+            // Business Layer
+            "class \\w+Service", "function \\w+Service\\(", "const \\w+Service =",
+            // Data Layer
+            "class \\w+Model", "function \\w+Model\\(", "const \\w+Model =",
+            // Presentation Layer (React)
+            "function \\w+\\(", "class \\w+ extends React\\.Component", "useEffect\\(", "useState\\(",
+            "render\\(", "React\\.createElement", "export default \\w+",
+            // Shared
+            "Logger", "Validator", "Utils", "Helper", "Exception", "Config", "Constants", "Settings",
+            // General JS
+            "class \\w+", "function \\w+\\("
         ));
     }
-
+    
     private List<ServiceBoundary> extractGo(String path, String content){
         return matchPatterns(path, content, "Go", List.of(
-            "http\\.HandleFunc", "mux\\.HandleFunc", "func \\w+\\(", 
-            "package \\w+", "sql\\.Open"
+            // API Layer
+            "http\\.HandleFunc", "mux\\.HandleFunc", "gin\\.Engine", 
+            // Business Layer
+            "type \\w+Service struct", "func \\(.*\\) \\w+Service\\.", 
+            // Data Layer
+            "type \\w+Model struct", "sql\\.Open", "db\\.Query", "gorm\\.",
+            // Presentation Layer
+            "func \\w+Handler\\(", "html/template", 
+            // Shared
+            "Logger", "Validator", "Utils", "Helper", "Exception", "Config", "Constants", "Settings",
+            // General Go
+            "func \\w+\\(", "type \\w+ struct"
         ));
     }
+    
     private List<ServiceBoundary> extractRs(String path, String content){
         return matchPatterns(path, content, "Rust", List.of(
-            "use actix_web::", "use rocket::", "impl \\w+", 
-            "structure \\w+", "mod \\w+"
+            // API Layer
+            "use actix_web::", "use rocket::", "#\\[get\\(", "#\\[post\\(",
+            // Business Layer
+            "struct \\w+Service", "impl \\w+Service",
+            // Data Layer
+            "struct \\w+Model", "diesel::", "schema::", "Queryable", "Insertable",
+            // Presentation Layer
+            "struct \\w+View", "impl \\w+View", "yew::", 
+            // Shared
+            "Logger", "Validator", "Utils", "Helper", "Error", "Config", "Constants", "Settings",
+            // General Rust
+            "fn \\w+\\(", "mod \\w+"
         ));
     }
+    
     private List<ServiceBoundary> extractCpp(String path, String content){
         return matchPatterns(path, content, "C++", List.of(
-            "class \\w+", "void \\w+\\(", "namespace \\w+"
+            // API Layer
+            "class \\w+Controller", "void \\w+Handler\\(",
+            // Business Layer
+            "class \\w+Service", "class \\w+Manager",
+            // Data Layer
+            "class \\w+Model", "struct \\w+Model", "namespace ORM", 
+            // Presentation Layer
+            "class \\w+View", "class \\w+Page",
+            // Shared
+            "Logger", "Validator", "Utils", "Helper", "Exception", "Config", "Constants", "Settings",
+            // General C++
+            "class \\w+", "void \\w+\\("
         ));
     }
-
+    
     private List<ServiceBoundary> extractRuby(String path, String content){
         return matchPatterns(path, content, "Ruby", List.of(
-            "class \\w+", "def \\w+", "module \\w+", 
-            "Rails\\.application.routes.draw", "ActiveRecord::Base"
+            // API Layer
+            "Rails\\.application\\.routes\\.draw", "class \\w+Controller",
+            // Business Layer
+            "class \\w+Service", "module \\w+Service", "def \\w+_service",
+            // Data Layer
+            "class \\w+Model", "ActiveRecord::Base", "class \\w+Serializer",
+            // Presentation Layer
+            "class \\w+View", "class \\w+Helper", "module \\w+Helper",
+            // Shared
+            "Logger", "Validator", "Utils", "Helper", "Exception", "Config", "Constants", "Settings",
+            // General Ruby
+            "class \\w+", "def \\w+"
         ));
     }
-
+    
     private List<ServiceBoundary> extractReact(String path, String content){
         return matchPatterns(path, content, "React", List.of(
+            // Presentation Layer
             "function \\w+\\(.*\\) \\{", "const \\w+ = \\(.*\\) => \\{",
-            "export default \\w+", "useEffect\\(", "useState\\("
+            "useEffect\\(", "useState\\(", "render\\(", "React\\.createElement",
+            "export default \\w+",
+            // Shared
+            "Logger", "Validator", "Utils", "Helper", "Exception", "Config", "Constants", "Settings"
         ));
     }
+    
 
     private List<ServiceBoundary> matchPatterns(String path, String content, String language, List<String>patterns){
         List<ServiceBoundary> results = new ArrayList<>();
@@ -248,15 +370,6 @@ public class ServiceBoundaryUtils {
         .collect(Collectors.joining("\n"));
     }
 
-    // public String extractJson(String text) {
-    //     int start = text.indexOf("{");
-    //     int end = text.lastIndexOf("}");
-    //     if (start == -1 || end == -1 || end <= start) {
-    //         return null; 
-    //     }
-    //     return text.substring(start, end + 1);
-    // }
-
     public String extractJson(String text) {
         text = text.replace("```json", "").replace("```", "").trim();
     
@@ -277,51 +390,270 @@ public class ServiceBoundaryUtils {
         return null; 
     }
     
-    
 
+    public String generateAsciiDiagram(String json) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(json);
+        JsonNode services = root.get("Services");
+        JsonNode borders = root.get("Borders");
     
-    public String generateSBDiagram(Map<String, ArchitectureMap.LayeredService> services) {
+        if (services == null || !services.isArray()) {
+            System.out.println( "No services found in JSON.");
+        }
+
+        if (borders == null || !borders.isArray()) {
+            System.out.println("No borders found in JSON.");
+        }
+    
         StringBuilder sb = new StringBuilder();
-        final int width = 26;
-        final String horizontalBorder = "+" + "-".repeat(width) + "+";
     
-        for (var entry : services.entrySet()) {
-            String serviceName = entry.getKey();
-            ArchitectureMap.LayeredService layers = entry.getValue();
+        for (JsonNode service : services) {
+            String name = service.get("Name").asText();
+            JsonNode responsibilities = service.get("Responsibilities");
     
-            // Print top border and service name centered-ish
-            sb.append(horizontalBorder).append("\n");
-            sb.append("| ").append(padCenter(serviceName, width - 2)).append(" |\n");
-            sb.append(horizontalBorder).append("\n");
-    
-            boolean hasContent = false;
-    
-            hasContent |= printLayer(sb, "[Presentation]", layers.presentation, width);
-            hasContent |= printLayer(sb, "[API]", layers.api, width);
-            hasContent |= printLayer(sb, "[Business]", layers.business, width);
-            hasContent |= printLayer(sb, "[Data]", layers.data, width);
-            hasContent |= printLayer(sb, "[Shared/Utils]", layers.shared, width);
-    
-            if (!hasContent) {
-                sb.append("| ").append(padCenter("(no roles detected)", width - 2)).append(" |\n");
+            int maxLen = name.length();
+            List<String> respList = new ArrayList<>();
+            if (responsibilities != null && responsibilities.isArray()) {
+                for (JsonNode resp : responsibilities) {
+                    String r = resp.asText();
+                    respList.add(r);
+                    if (r.length() > maxLen) maxLen = r.length();
+                }
             }
     
-            sb.append(horizontalBorder).append("\n\n");
+            int width = maxLen + 4; 
+    
+    
+            sb.append("+").append("-".repeat(width)).append("+\n");
+  
+            sb.append("| ").append(padRight(name, width - 2)).append(" |\n");
+  
+            sb.append("+").append("-".repeat(width)).append("+\n");
+    
+       
+            for (String resp : respList) {
+                sb.append("| ").append(padRight(resp, width - 2)).append(" |\n");
+            }
+    
+       
+            sb.append("+").append("-".repeat(width)).append("+\n\n");
         }
+    
         return sb.toString();
     }
     
-    private boolean printLayer(StringBuilder sb, String label, List<String> items, int width) {
-        if (items.isEmpty()) return false;
-        List<String> uniqueItems = items.stream().distinct().toList();
-        String joined = String.join(", ", uniqueItems);
-        if (joined.length() > width - label.length() - 3) { 
-            joined = joined.substring(0, width - label.length() - 6) + "...";
+    private String padRight(String text, int width) {
+        return text + " ".repeat(Math.max(0, width - text.length()));
+    }
+    
+    
+    public String generateAsciiDiagramFromLLMJson(String json) {
+        StringBuilder sb = new StringBuilder();
+        final int width = 60;
+        final String border = "+" + "-".repeat(width - 2) + "+";
+    
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(json);
+
+            String[] possibleKeys = {"serviceBoundaries", "service_boundaries", "boundaries", "services", "Services", "Boundaries"};
+
+        for (String key : possibleKeys) {
+        JsonNode boundaries = root.get(key);
+         if (boundaries != null && boundaries.isArray()) {
+            for (JsonNode service : boundaries) {
+            String name = service.path("name").asText();
+            List<String> responsibilities = extractList(service, "responsibilities");
+            List<String> layers = extractList(service, "layers");
+
+            sb.append(renderServiceBlock(name, responsibilities, null, null, layers, width, border));
+             }
+            return sb.toString();
+            }
         }
-        sb.append("| ").append(label).append(" ").append(joined).append("\n");
-        return true;
+
+    
+        Iterator<Map.Entry<String, JsonNode>> fieldNames = root.fields();
+        while (fieldNames.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fieldNames.next();
+            String key = entry.getKey();
+            JsonNode value = entry.getValue();
+
+            if (!value.isArray()) continue;
+
+
+            if (value.isArray()) {
+                sb.append(border).append("\n");
+                sb.append("| ").append(center(key, width - 4)).append(" |\n");
+                sb.append(border).append("\n");
+
+                for (JsonNode service : value) {
+                    String name = service.path("name").asText();
+                    List<String> responsibilities = extractList(service, "responsibilities");
+                    List<String> types = extractList(service, "type");
+                    List<String> borders = extractList(service, "borderIds");
+                    List<String> layers = extractList(service, "layers");
+                    sb.append(renderServiceBlock(name, responsibilities, types, borders, layers, width, border));
+                }
+            } else if (value.isObject()) {
+    
+                List<String> responsibilities = extractList(value, "responsibilities");
+                sb.append(renderServiceBlock(key, responsibilities, null, null, null, width, border));
+            }
+        }
+    
+
+
+    
+            return sb.toString();
+    
+        } catch (Exception e) {
+            return "Error parsing JSON: " + e.getMessage();
+        }
+    }
+    
+    private List<String> extractList(JsonNode node, String field) {
+        List<String> list = new ArrayList<>();
+        if (node.has(field)) {
+            for (JsonNode item : node.get(field)) {
+                list.add(item.asText());
+            }
+        }
+        return list;
+    }
+    
+    private String renderServiceBlock(String name, List<String> responsibilities, List<String> types, List<String> borders, List<String> layers, int width, String border) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(border).append("\n");
+        sb.append(String.format("| %-"+(width-4)+"s |\n", center(name, width - 4)));
+        sb.append(border).append("\n");
+
+        if (responsibilities != null && !responsibilities.isEmpty()) {
+            sb.append("| Responsibilities:").append(" ".repeat(width - 20)).append("|\n");
+            for (String r : responsibilities) {
+                sb.append("|   - ").append(padRight(r, width - 5)).append("|\n");
+            }
+        }
+
+        if (types != null && !types.isEmpty()) {
+            sb.append("| Types:").append(" ".repeat(width - 20)).append("|\n");
+            for (String t : types) {
+                sb.append("|   - ").append(padRight(t, width - 5)).append("|\n");
+            }
+        }
+        if (borders != null && !borders.isEmpty()) {
+            sb.append("| Linked Borders:").append(" ".repeat(width - 20)).append("|\n");
+            for (String b : borders) {
+                sb.append("|   - ").append(padRight(b, width - 5)).append("|\n");
+            }
+        }
+
+        if (layers != null && !layers.isEmpty()) {
+            sb.append("| Layers:").append(" ".repeat(width - 10)).append("|\n");
+            for (String l : layers) {
+                sb.append("|   * ").append(padRight(l, width - 6)).append("|\n");
+            }
+        }
+
+        sb.append(border).append("\n\n");
+        return sb.toString();
+    }
+    
+
+    private String center(String text, int width) {
+        int padding = Math.max(0, (width - text.length()) / 2);
+        return " ".repeat(padding) + text + " ".repeat(width - text.length() - padding);
+    }
+    
+
+    
+    public String generateBoundaryContextDiagram(ArchitectureMap map) {
+    Map<String, Set<String>> serviceToShared = new HashMap<>();
+    Map<String, Set<String>> edges = new HashMap<>();
+
+
+    for (Map.Entry<String, ArchitectureMap.LayeredService> entry : map.services.entrySet()) {
+        String service = entry.getKey();
+        Set<String> sharedItems = new HashSet<>(entry.getValue().shared);
+        serviceToShared.put(service, sharedItems);
     }
 
+
+    for (Map.Entry<String, Set<String>> entryA : serviceToShared.entrySet()) {
+        String serviceA = entryA.getKey();
+        Set<String> sharedA = entryA.getValue();
+
+        for (Map.Entry<String, Set<String>> entryB : serviceToShared.entrySet()) {
+            String serviceB = entryB.getKey();
+            if (serviceA.equals(serviceB)) continue;
+
+            Set<String> sharedB = entryB.getValue();
+
+            Set<String> intersection = new HashSet<>(sharedA);
+            intersection.retainAll(sharedB);
+
+            if (!intersection.isEmpty()) {
+                edges.computeIfAbsent(serviceA, k -> new HashSet<>()).add(serviceB);
+            }
+        }
+    }
+
+
+    StringBuilder sb = new StringBuilder();
+    Set<String> allServices = new HashSet<>(map.services.keySet());
+
+    for (String service : allServices) {
+        sb.append("+------------------+\n");
+        sb.append("| ").append(padCenter(service, 18)).append(" |\n");
+        sb.append("+------------------+\n");
+
+        Set<String> targets = edges.getOrDefault(service, new HashSet<>());
+        for (String target : targets) {
+            sb.append("       uses -----> ").append(target).append("\n");
+        }
+        sb.append("\n");
+    }
+
+    return sb.toString();
+}
+
+  
+    public ArchitectureMap parseResponsbilities(String ascii){
+        ArchitectureMap map = new ArchitectureMap();
+
+        String[] blocks = ascii.split("\\+[-]+\\+\\n");
+        for(String block : blocks) {
+            if(block.isBlank()) continue;
+
+            String[] lines = block.split("\\n");
+            String serviceName = null;
+            List<String> responsbilities = new ArrayList<>();
+
+            for(String line: lines){
+                line = line.trim().replace("|", "").trim();
+                if(line.isBlank()) continue;
+
+                if (serviceName == null){
+                    serviceName = line;
+                }
+                else if (line.startsWith("-")){
+                    responsbilities.add(line.substring(1).trim());
+
+                }
+            }
+
+            if(serviceName == null){
+                ArchitectureMap.LayeredService layeredService = new ArchitectureMap.LayeredService();
+
+                layeredService.shared.addAll(responsbilities);
+                map.services.put(serviceName, layeredService);
+            }
+        }
+
+       
+
+        return map;
+}
 
     
     

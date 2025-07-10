@@ -521,29 +521,6 @@ public class ArchitectureUtils {
     }
     
     
-    // public String displayArchitecture(BinaryTreeNode node, String url, boolean isLast) {
-    //     StringBuilder diagram = new StringBuilder();
-    //     buildTreeDiagram(node, "", isLast, diagram);
-    //     return diagram.toString();
-    // }
-
-    // private void buildTreeDiagram(BinaryTreeNode node, String prefix, boolean isLast, StringBuilder diagram) {
-    //     if (node == null) return;
-
-    //     diagram.append(prefix)
-    //            .append(isLast ? "└── " : "├── ")
-    //            .append(node.type)
-    //            .append(": ")
-    //            .append(node.name)
-    //            .append("\n");
-
-    //     if (node.children != null && !node.children.isEmpty()) {
-    //         for (int i = 0; i < node.children.size(); i++) {
-    //             boolean lastChild = (i == node.children.size() - 1);
-    //             buildTreeDiagram(node.children.get(i), prefix + (isLast ? "    " : "│   "), lastChild, diagram);
-    //         }
-    //     }
-    // }
 
     public void buildTree(BinaryTreeNode node, Path path) throws IOException {
     try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
