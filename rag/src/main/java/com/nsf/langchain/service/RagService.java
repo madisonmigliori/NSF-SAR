@@ -5,17 +5,23 @@ import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.chroma.vectorstore.ChromaApi.Collection;
+import org.springframework.ai.chroma.vectorstore.ChromaApi.GetEmbeddingsRequest;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.document.Document;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays; 
+import java.util.Arrays;
+import java.util.HashMap;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,38 +34,36 @@ public class RagService {
     private final ChatModel chatModel;
     private final IngestionService ingestionService;
 
-    public RagService(VectorStore vectorStore, ChatModel chatModel, IngestionService ingestionService) {
+    private final ChromaVectorStoreManager vectorManager;
+
+    // @Autowired
+    // public IngestionService(ChromaVectorStoreManager vectorManager) {
+    //     this.vectorManager = vectorManager;
+    // }
+
+    public RagService(VectorStore vectorStore, ChatModel chatModel, IngestionService ingestionService, ChromaVectorStoreManager vectorManager) {
         this.vectorStore = vectorStore;
         this.chatModel = chatModel;
         this.ingestionService = ingestionService;
+        this.vectorManager = vectorManager;
     }
-
 
     public String answer(String question, String repoId) {
         List<Document> docs;
-        Path jsonPath = Paths.get("/Users/madisonmigliori/Documents/NSF/NSF-SAR/rag/doc");
-
 
         if (repoId == null || repoId.isBlank()) {
             throw new IllegalArgumentException("Missing repoId for context search.");
         }
         try {
-            ingestionService.ingestJson(jsonPath, repoId);
-            log.info("JSON ingestion completed for file: {}", jsonPath);
+            ingestionService.ingestJson();
+            log.info("JSON ingestion completed for file: {}", repoId);
         } catch (Exception e) {
             log.error("Failed to ingest JSON before answering:", e);
             return "An error occurred while ingesting the JSON context. Please check the file and try again.";
         }    
         try {
             log.info("Searching vector store for repoId: {}", repoId);
-            docs = vectorStore.similaritySearch(
-                SearchRequest.builder()
-                    .query(question)
-                    .topK(10)
-                    .filterExpression(repoId)
-                    .similarityThreshold(0.3)
-                    .build()
-            );
+            docs = vectorManager.getDocuments();
         } catch (Exception e) {
             log.error("Error during similarity search", e);
             return "An error occurred while searching for relevant context. Please try again later.";
@@ -69,7 +73,6 @@ public class RagService {
             return "No relevant context found.";
         }
 
-        
         String context = docs.stream()
                              .map(Document::getText)
                              .collect(Collectors.joining("\n---\n"));
@@ -96,7 +99,7 @@ public class RagService {
                                 """),
                                 new UserMessage("Here is the context:\n" + context + "\n\nNow, based on that, answer this question:\n" + question)
                             );
-                            
+
         ChatResponse response = chatModel.call(new Prompt(messages));
         return response.getResult().getOutput().getText();
     }

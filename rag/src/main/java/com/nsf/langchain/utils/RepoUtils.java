@@ -1,7 +1,7 @@
 package com.nsf.langchain.utils;
 public class RepoUtils {
 
-    public static String extractRepoId(String url) {
+    public static String[] extractRepoId(String url) {
         try {
 
             java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
@@ -13,12 +13,15 @@ public class RepoUtils {
                 String user = matcher.group(2);
                 String repo = matcher.group(3);
                 if (host.contains("github.com")) {
-                    return user + "-" + repo;
+                    String[] repoInfo = {user, repo};
+                    return repoInfo;
                 }
             }
         } catch (Exception e) {
-            return "Sorry, I couldn't process github URL right now.";
+            String[] notFound = {"Sorry, I couldn't process github URL right now."};
+            return notFound;
+            // return "Sorry, I couldn't process github URL right now.";
         }
-        return "default";
+        return new String[]{"default"};
     }
 }

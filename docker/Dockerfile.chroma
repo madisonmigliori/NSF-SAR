@@ -1,0 +1,4 @@
+FROM ghcr.io/chroma-core/chroma:latest
+RUN apt-get update && apt-get install -y curl
+
+# ENTRYPOINT ["java", "-jar", "/rag/rag.jar"]

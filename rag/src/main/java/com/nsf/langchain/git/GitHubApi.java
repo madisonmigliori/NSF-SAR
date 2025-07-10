@@ -2,6 +2,7 @@ package com.nsf.langchain.git;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nsf.langchain.git.token.*;
+import com.nsf.langchain.service.IngestionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.net.*;
 import java.net.http.HttpClient;
@@ -10,58 +11,40 @@ import java.net.http.HttpResponse;
 import java.util.Scanner;
 import java.util.Stack;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ai.document.Document;
+
+
 public class GitHubApi {
+    
+    private static final Logger log = LoggerFactory.getLogger(IngestionService.class);
+
 
     private BinaryTreeNode root;
+    private String user;
+    private String repo;
+    private String type;
 
-    public BinaryTreeNode main(String[] args) {
+    public GitHubApi(String user, String repo){
+        this.user = user;
+        this.repo = repo;
+    }
 
-        Scanner scanner = new Scanner(System.in);
-
-        System.out.print("Enter Public GitHub Repo URL: ");
-        String ProjectURL = scanner.nextLine();
+    public void buildTree() {
 
         try {
-            while (ProjectURL.contains("git@github.com") || ProjectURL.contains("gh repo clone")) {
-                if (ProjectURL.contains("git@github.com")) {
-                    System.out.println("SSH Keys Not Accepted.. Retry?");
-                } else if (ProjectURL.contains("gh repo clone")) {
-                    System.out.println("GitHub CLIs Not Accepted.. Retry?");
-                }
-
-                System.out.print("Enter Public GitHub Repo URL: ");
-                ProjectURL = scanner.nextLine();
-            }
-
-            URL GitURL = new URI(ProjectURL).toURL();
-
-            String GitClean = GitURL.getPath().split(".git")[0];
-            String[] GitSections = GitClean.split("/");
-
-            //making sure github url of repo
-            while(!GitURL.getHost().equals("github.com") || GitSections.length == 2) { //
-                System.out.println("Github repo not found.. Retry?");
-
-                System.out.print("Enter Public GitHub Repo URL: ");
-                ProjectURL = scanner.nextLine();
-                GitURL = new URI(ProjectURL).toURL();
-                GitClean = GitURL.getPath().split(".git")[0];
-                GitSections = GitClean.split("/");
-            }
-
-            scanner.close();
-
-            String user = GitSections[1];
-            String repo = GitSections[2];
-
             String token = new GetToken().getToken();
             
             Stack<BinaryTreeNode> tovisit= new Stack<>();
             
             String apiUrl = "https://api.github.com/repos/" + user  + "/" + repo + "/contents";
-            BinaryTreeNode root = new BinaryTreeNode(repo, "repo", apiUrl);
-            this.root = root;
-            tovisit.push(root);
+
+            this.root = new BinaryTreeNode(repo, "repo", apiUrl, "0");
+            tovisit.push(this.root);
+            // this.root = root;
+
+            log.info(apiUrl);
 
             HttpClient client = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
@@ -91,9 +74,12 @@ public class GitHubApi {
                         String name = node.get("name").asText();
                         String type = node.get("type").asText();
                         String url = node.get("url").asText();
+                        String size = node.get("size").asText();
+
+                        this.type = type;
 
                         if (type.equals("dir")){
-                            BinaryTreeNode NewNode = new BinaryTreeNode(name, type, url);
+                            BinaryTreeNode NewNode = new BinaryTreeNode(name, type, url, size);
                             tovisit.push(NewNode);
                             curr.addChild(curr, NewNode);
                         }else{ // else assume type = file 
@@ -108,7 +94,7 @@ public class GitHubApi {
                                 .build();
 
                             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                            BinaryTreeNode NewNode = new BinaryTreeNode(name, type, url, response.body());
+                            BinaryTreeNode NewNode = new BinaryTreeNode(name, type, url, response.body(), size);
                             curr.addChild(curr, NewNode);
                         }
                     }
@@ -116,23 +102,22 @@ public class GitHubApi {
                     System.out.println("Invalid Github Repo :(");
                 }
             }
+            // this.root = root;
             // printTree(root, "");
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        return root;
-
     }
 
-    public static BinaryTreeNode getTree(BinaryTreeNode root){
-        return root;
+    public BinaryTreeNode getTree(){
+        return this.root;
     }
 
-    public static void printTree(BinaryTreeNode node, String indent) {
+    public void printTree(BinaryTreeNode node, String indent) {
         if (node == null) return;
 
-        System.out.println(indent + node.type + " " + node.name);
+        // System.out.println(indent + node.type + " " + node.name);
+        log.info(indent + node.type + " " + node.name);
         
         if (node.children != null) {
             for (BinaryTreeNode child : node.children) {

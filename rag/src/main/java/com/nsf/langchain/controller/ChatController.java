@@ -50,3 +50,4 @@ public class ChatController {
         return "Status: UP";
     }
 }
+

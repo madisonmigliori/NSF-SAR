@@ -48,23 +48,4 @@ public class RepoController {
         }
     }
 
-
-    @PostMapping("/git")
-    @Operation(
-            summary = "Ingest repo via GitHub API",
-            description = "Uses the GitHub API to crawl the repository and ingest file contents directly."
-    )
-    public ResponseEntity<String> ingestGit(@RequestParam String gitUrl) {
-        try {
-            ingestionService.ingestGitRepoAPI(gitUrl);
-            return ResponseEntity.ok("Ingestion started.");
-        } catch (Exception e) {
-            log.error("Failed to ingest repo {}", gitUrl, e);
-            return ResponseEntity
-                    .status(500)
-                    .body("Error ingesting repo: " + e.getMessage());
-        }
-    }
-
-    
 }
