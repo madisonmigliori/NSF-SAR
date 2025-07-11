@@ -3,7 +3,7 @@ package com.nsf.langchain.git;
 import java.util.ArrayList;
 import java.util.List;
 
-class BinaryTreeNode {
+public class BinaryTreeNode {
     String name, type, url, content;
     List<BinaryTreeNode> children;
 
