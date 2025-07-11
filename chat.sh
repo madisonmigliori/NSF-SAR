@@ -12,7 +12,7 @@ function wait_for_server() {
   docker compose up -d > /dev/null 2>&1
 
   until [[ "$(curl -s http://localhost:8080/actuator/health | jq -r .status)" == "UP" ]]; do
-    echo "⏳ Waiting for server to be healthy..."
+    echo "Waiting for server to be healthy..."
     sleep 5
   done
 
@@ -41,20 +41,16 @@ done
 encodedUrl=$(jq -rn --arg url "$repoUrl" '$url|@uri')
 
 
-echo "📥 Ingesting the repository..."
+echo "Ingesting the repository..."
 response=$(curl -s -X POST "http://localhost:8080/api/repos/ingest?gitUrl=$encodedUrl")
 
 
 if echo "$response" | jq empty >/dev/null 2>&1; then
-  echo "$response" | jq -r '.message // .status // "✅ Ingestion request sent."'
+  echo "$response" | jq -r '.message // .status // " Ingestion request sent."'
 else
-  echo "✅ $response"
+  echo "$response"
 fi
 
-
-history_file="chat_history_${repoId}.log"
-touch "$history_file"
-echo "📝 Chat history will be saved to $history_file"
 
 echo "Ask your question (type /bye to exit):"
 while true; do

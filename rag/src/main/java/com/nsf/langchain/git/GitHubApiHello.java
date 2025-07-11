@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nsf.langchain.controller.RepoController;
 import com.nsf.langchain.git.token.GetToken;
 
 public class GitHubApiHello {

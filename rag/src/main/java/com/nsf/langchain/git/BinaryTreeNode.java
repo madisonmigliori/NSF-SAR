@@ -4,27 +4,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BinaryTreeNode {
-    String name, type, url, content;
+    String name;
+    String type;
+    String path;
     List<BinaryTreeNode> children;
+    Boolean inbounds;
 
-    // for any dirs and the initial repo because allows for children 
-    //  and doesnt require content
-    public BinaryTreeNode(String name, String type, String url) {
+    // for all child and parent nodes
+    public BinaryTreeNode(String name, String type, String path, Boolean inbounds) {
         this.name = name;
         this.type = type;
-        this.url = url;
+        this.path = path;
         this.children = new ArrayList<BinaryTreeNode>();
-    }
-
-    // for files in the github because they cannot have children 
-    public BinaryTreeNode(String name, String type, String url, String content) {
-        this.name = name;
-        this.type = type;
-        this.url = url;
-        this.content = content;
+        inbounds = false;
     }
 
     public void addChild(BinaryTreeNode parent, BinaryTreeNode child){
         parent.children.add(child);
     }
+
 }
