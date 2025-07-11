@@ -1,33 +1,50 @@
 
 services:
   rag:
-    image: 'rag:latest'
+    image: rag-app:latest
     ports: 
-      - '8080:8080'
-    # depends_on:
-    #   chroma:
-    #     condition: service_healthy
-    #   ollama:
-    #     condition: service_healthy
+      - '8081:8081'
+    depends_on:
+      chroma:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
     restart: on-failure
     environment:
       SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST: chroma
       SPRING_AI_VECTORSTORE_CHROMA_CLIENT_PORT: 8000
  
+  # chroma:
+  #   # image: chroma-custom
+  #   image: ghcr.io/chroma-core/chroma:latest
+  #   ports:
+  #     - '8000:8000'
+  #   volumes:
+  #     - chroma_data:/chroma/.chroma
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v2/healthcheck || exit 1"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 10
+  #     start_period: 30s
   chroma:
-    image: ghcr.io/chroma-core/chroma:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.chroma
     ports:
       - '8000:8000'
-    volumes:
-      - chroma_data:/chroma/.chroma
-    # healthcheck:
-    #   test: ["CMD-SHELL", "curl -sf http://localhost:8000/docs"]
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 5
-    #   start_period: 10s
+    # volumes:
+    #   - chroma_data:/chroma/.chroma
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v2/healthcheck || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
    
   ollama:
+    # image: ollama-custom
     image: ollama/ollama:latest
     ports:
       - '11434:11434'
@@ -38,17 +55,97 @@ services:
     environment:
       OLLAMA_MODELS: /root/.ollama/models
       OLLAMA_RUN_MODELS: llama3,nomic-embed-text
-    # healthcheck:
-    #   test: ["CMD-SHELL", "curl -sf http://localhost:11434 || exit 1"]
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 10
-    #   start_period: 30s
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:11434 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
    
 
 
 volumes:
   chroma_data:
   ollama_data:
+
+
+# services:
+#   rag:
+#     image: rag-app:latest
+#     ports: 
+#       - '8080:8080'
+#     depends_on:
+#       chroma:
+#         condition: service_healthy
+#       ollama:
+#         condition: service_healthy
+#     restart: on-failure
+#     # environment:
+#       # SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST: chroma
+#       # SPRING_AI_VECTORSTORE_CHROMA_CLIENT_PORT: 8000
+#     # environment:
+#       # - SPRING_AI_VECTORSTORE_CHROMA_API_BASE_URL=http://chroma:8000
+ 
+#   # chroma:
+#   #   image: ghcr.io/chroma-core/chroma:latest
+#   #   ports:
+#   #     - '8000:8000'
+#   #   volumes:
+#   #     - chroma_data:/chroma/.chroma
+#   #   healthcheck:
+#   #     test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v2/healthcheck | grep -q'\"is_executor_ready\":true'"]
+#   #     interval: 10s
+#   #     timeout: 5s
+#   #     retries: 5
+#   #     start_period: 10s
+#   chroma:
+#     # image: ghcr.io/chroma-core/chroma:latest
+#     ports:
+#       - "8000:8000"
+#     healthcheck:
+#       # test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v2/healthcheck | grep -q '\"is_executor_ready\":true'"]
+#       test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v2/healthcheck"]
+#       # test: ["CMD-SHELL", "wget -qO- http://localhost:8000/api/v2/healthcheck"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#       start_period: 30s
+#     # healthcheck:
+#     #   test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v2/healthcheck"]
+#     #   interval: 10s
+#     #   timeout: 5s
+#     #   retries: 5
+
+#     volumes:
+#       - chroma_data:/chroma/.chroma
+
+
+   
+#   ollama:
+#     image: ollama/ollama:latest
+#     ports:
+#       - '11434:11434'
+#     command: ["serve"]
+#     restart: on-failure
+#     volumes:
+#       - ollama_data:/root/.ollama
+#     #   - ~/.ollama:/root/.ollama
+#     environment:
+#       OLLAMA_MODELS: /root/.ollama/models
+#       OLLAMA_RUN_MODELS: gemma:2b,nomic-embed-text:latest
+#       SPRING_AI_VECTORSTORE_CHROMA_EMBEDDING_MODEL: nomic-embed-text:latest
+#     healthcheck:
+#       # test: ["CMD-SHELL", "curl -sf http://localhost:11434 | grep -q 'Ollama is running'"]
+#       test: ["CMD-SHELL", "curl -sf http://localhost:11434"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 10
+#       start_period: 30s
+   
+
+
+# volumes:
+#   chroma_data:
+#   ollama_data:
 
 

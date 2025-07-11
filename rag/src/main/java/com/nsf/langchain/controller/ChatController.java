@@ -25,25 +25,23 @@ public class ChatController {
     @Autowired
     private RagService ragService;
 
-    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
-
-    @PostMapping
-    @Operation(
-            summary = "Chat with the controller",
-            description = "Ask the model a question based on a specific repository's ingested context."
-    )
-    public ResponseEntity<Answer> chat(@RequestBody Question q) {
-        try {
-            log.info("Received question: '{}' for repo: '{}'", q.getText(), q.getRepoId());
-            String response = ragService.answer(q.getText(), q.getRepoId());
-            return ResponseEntity.ok(new Answer(response));
-        } catch (Exception e) {
-            log.error("Chat processing failed for question '{}'", q.getText(), e);
-            return ResponseEntity
-                    .internalServerError()
-                    .body(new Answer("Sorry, I couldn't process your question right now."));
-        }
-    }
+    // @PostMapping
+    // @Operation(
+    //         summary = "Chat with the controller",
+    //         description = "Ask the model a question based on a specific repository's ingested context."
+    // )
+    // public ResponseEntity<Answer> chat(@RequestBody Question q) {
+    //     try {
+    //         log.info("Received question: '{}' for repo: '{}'", q.getText(), q.getRepoId());
+    //         String response = ragService.answer(q.getText(), q.getRepoId());
+    //         return ResponseEntity.ok(new Answer(response));
+    //     } catch (Exception e) {
+    //         log.error("Chat processing failed for question '{}'", q.getText(), e);
+    //         return ResponseEntity
+    //                 .internalServerError()
+    //                 .body(new Answer("Sorry, I couldn't process your question right now."));
+    //     }
+    // }
 
     @PostMapping("/analyze")
 @Operation(
