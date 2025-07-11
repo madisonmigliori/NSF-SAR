@@ -41,7 +41,7 @@ done
 encodedUrl=$(jq -rn --arg url "$repoUrl" '$url|@uri')
 
 
-echo "📥 Ingesting the repository..."
+echo "Ingesting the repository..."
 response=$(curl -s -X POST "http://localhost:8080/api/repos/ingest?gitUrl=$encodedUrl")
 
 
@@ -54,7 +54,7 @@ fi
 
 history_file="chat_history_${repoId}.log"
 touch "$history_file"
-echo "📝 Chat history will be saved to $history_file"
+echo "Chat history will be saved to $history_file"
 
 echo "Ask your question (type /bye to exit):"
 while true; do

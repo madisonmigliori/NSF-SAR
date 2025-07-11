@@ -203,7 +203,7 @@ public class RagService {
     
         List<Scoring> criteria = jsonUtils.loadScoringJson(Paths.get("doc/msa-scoring.json"));
         List<Pattern> allPatterns = jsonUtils.loadPatternsJson(Paths.get("doc/msa-patterns.json"));
-    
+
       
         List<Document> docs = vectorStore.similaritySearch(
             SearchRequest.builder()
@@ -382,6 +382,7 @@ public class RagService {
     
     Each recommendation must be **prioritized** according to scoring weights (assume higher-weighted criteria are more critical).
     
+    
     Output format (grouped by **Category**):
     
     ### Category: <e.g., Scalability>
@@ -426,6 +427,7 @@ public class RagService {
     //             - The goal is to improve **modularity**, **scalability**, **maintainability**, and **alignment with microservice patterns**.
     //             - Reduce coupling and enforce clear service boundaries.
     //             - **Use the same ASCII format starting with '├──', '└──', etc.**
+    //             -**DO NOT** output a service boundary diagram or domain 
     //             - Ensure the diagram is complete and readable.
     
     //             After the diagram, include a concise explanation of:

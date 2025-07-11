@@ -37,7 +37,7 @@ services:
       - ollama_data:/root/.ollama
     environment:
       OLLAMA_MODELS: /root/.ollama/models
-      OLLAMA_RUN_MODELS: llama3,nomic-embed-text
+      OLLAMA_RUN_MODELS: mistral,nomic-embed-text
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:11434 || exit 1"]
       interval: 10s
