@@ -62,10 +62,6 @@
     <version>5.10.0</version>
     <scope>test</scope>
 </dependency>
-<dependency>
-    <groupId>org.springframework.ai</groupId>
-    <artifactId>spring-ai-starter-model-mistral-ai</artifactId>
-</dependency>
 
     <dependency>
         <groupId>dev.langchain4j</groupId>

@@ -288,7 +288,7 @@ test.forEach(doc -> log.info("Found: {}", doc.getMetadata()));
                 log.info("Ingested {} patterns from '{}'", documents.size(), path.getFileName());
                 debugVectorStoreDocs();
           
-                List<Document> test = vectorStore.similaritySearch("repo == 'test-repo'");
+                List<Document> test = vectorStore.similaritySearch("repo == ''");
                 log.info("Test results: {}", test.size());
                 test.forEach(doc -> log.info("Found: {}", doc.getMetadata()));
             } else {
