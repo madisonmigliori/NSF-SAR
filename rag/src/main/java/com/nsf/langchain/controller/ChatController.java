@@ -4,14 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.nsf.langchain.model.Answer;
 import com.nsf.langchain.model.Question;
+import com.nsf.langchain.model.Repo;
+import com.nsf.langchain.model.Report;
 import com.nsf.langchain.service.RagService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,10 +25,12 @@ public class ChatController {
     @Autowired
     private RagService ragService;
 
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
+
     @PostMapping
     @Operation(
-            summary = "Ask a question about your GitHub repo",
-            description = "The LLM will analyze your repository (and JSON scoring context) and answer your architecture-related question."
+            summary = "Chat with the controller",
+            description = "Ask the model a question based on a specific repository's ingested context."
     )
     public ResponseEntity<Answer> chat(@RequestBody Question q) {
         try {
@@ -41,14 +41,39 @@ public class ChatController {
             log.error("Chat processing failed for question '{}'", q.getText(), e);
             return ResponseEntity
                     .internalServerError()
-                    .body(new Answer("Sorry. I couldn’t process your question right now. Please check logs or try again later."));
+                    .body(new Answer("Sorry, I couldn't process your question right now."));
         }
     }
 
+    @PostMapping("/analyze")
+@Operation(
+    summary = "Analyze a repository",
+    description = "Runs dependency extraction, architecture analysis, and gives AI recommendations for the given repo URL."
+)
+public ResponseEntity<Report> analyze(@RequestBody Repo gitUrl) {
+    try {
+        Report report = ragService.getReport(gitUrl.getUrl());
+        return ResponseEntity.ok(report);
+    } catch (Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.internalServerError().body(
+            new Report(
+                gitUrl.getUrl(),
+                "Error extracting dependencies.",
+                "Error running analysis.",
+                "Error displaying architecture.",
+                "Error providing recommendations.",
+                "Error identifying service boundary.",
+                "Error displaying refactored architecture"
+            )
+        );
+    }
+}
+
     @GetMapping("/ping")
     @Operation(
-            summary = "RAG Service Health Check",
-            description = "Quick ping to confirm that the chat service is up and running."
+            summary = "Controller Health Check",
+            description = "Verifies that the RAG system is running and responding."
     )
     public String ping() {
         return "Status: UP";
