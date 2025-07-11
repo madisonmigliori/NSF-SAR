@@ -12,11 +12,11 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Scoring {
-    String name;
-    String description;
-    String guidance;
-    List<String> patterns;
-    double weight;
+    private String name;
+    private String description;
+    private String guidance;
+    private List<String> patterns;
+    private double weight;
     
     @Override
     public String toString(){

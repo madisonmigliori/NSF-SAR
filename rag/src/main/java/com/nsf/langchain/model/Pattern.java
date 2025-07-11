@@ -12,13 +12,13 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Pattern {
-    String name;
-    String description;
-    String advantage;
-    String disadvantage;
-    
+    private String name;
+    private String description;
+    private String advantage;
+    private String disadvantage;
+
     @JsonProperty("common implementations")
-    String common;
+    private String common;
 
     @Override
     public String toString(){

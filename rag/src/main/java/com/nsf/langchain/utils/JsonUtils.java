@@ -4,6 +4,7 @@ import com.nsf.langchain.model.Scoring;
 import com.nsf.langchain.model.Pattern;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+
+
 @Component
 public class JsonUtils {
     private static final Logger log = LoggerFactory.getLogger(JsonUtils.class);
@@ -21,7 +24,8 @@ public class JsonUtils {
 
     public List<Scoring> loadScoringJson(Path filePath){
         try{
-            JsonNode root = objectMapper.readTree(filePath.toFile());
+            String content = Files.readString(filePath);
+            JsonNode root = objectMapper.readTree(content);
             JsonNode criteriaNode = root.get("criteria");
 
             if(criteriaNode == null || !criteriaNode.isArray()){
@@ -37,7 +41,8 @@ public class JsonUtils {
     }
     public List<Pattern> loadPatternsJson(Path filePath){
         try{
-            JsonNode root = objectMapper.readTree(filePath.toFile());
+            String content = Files.readString(filePath);
+            JsonNode root = objectMapper.readTree(content);
             JsonNode criteriaNode = root.get("patterns");
 
             if(criteriaNode == null || !criteriaNode.isArray()){
@@ -51,5 +56,7 @@ public class JsonUtils {
         }
 
     }
+
+    
     
 }
