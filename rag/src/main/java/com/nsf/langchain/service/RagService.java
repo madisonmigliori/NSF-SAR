@@ -1,3 +1,4 @@
+
 package com.nsf.langchain.service;
 
 import org.springframework.ai.chat.model.ChatModel;
@@ -15,6 +16,7 @@ import com.nsf.langchain.git.GitHubApi;
 import com.nsf.langchain.model.Repo;
 import com.nsf.langchain.model.Report;
 import com.nsf.langchain.model.Scoring;
+import com.nsf.langchain.model.BoundaryResult;
 import com.nsf.langchain.model.Pattern;
 import com.nsf.langchain.utils.ArchitectureUtils;
 import com.nsf.langchain.utils.GitUtils;
@@ -70,7 +72,7 @@ public class RagService {
     }
     
 
-    public Report getReport(String url) {
+    public Report getReport(String url) throws JsonProcessingException {
         String repoId = RepoUtils.extractRepoId(url);
         String[] parts = url.split("/");
         String user = parts[parts.length - 2];
@@ -82,6 +84,7 @@ public class RagService {
         String recommendations = "";
         String architectureRec = "";
         String boundary = "";
+        String boundary2 = "";
     
         long startTime = System.currentTimeMillis();
         long totalTime = 0;
@@ -100,13 +103,14 @@ public class RagService {
     
         Map<String, String> codeFiles = gitHubApi.extractCode(ingestRepo);
 
-        List<ServiceBoundaryUtils.ServiceBoundary> artifacts = serviceBoundary.extractCode(codeFiles);
+        List<ServiceBoundaryUtils.ServiceBoundary> artifacts = serviceBoundary.extractFiles(codeFiles);
         ServiceBoundaryUtils.ArchitectureMap archMap = serviceBoundary.fallback(artifacts);
 
-        archMap.printLayers();
+    
+    
 
-        String diagram = serviceBoundary.generateBoundaryContextDiagram(archMap);
-        System.out.println(diagram);
+        String diagram = serviceBoundary.generateDiagramWithMultiArrowsBetweenBoxes(archMap);
+        System.out.println("Here is the digram\n" + diagram);
 
         try {
             long stepStart = System.currentTimeMillis();
@@ -119,11 +123,24 @@ public class RagService {
         }
         try {
             long stepStart = System.currentTimeMillis();
-            boundary = generateBoundary(repoId, ingestRepo);
+            // boundary = generateBoundary(repoId, ingestRepo);
+            BoundaryResult boundaryResult = inferBoundary(ingestRepo);
+
+            boundary = "\n\n---\n\n" + boundaryResult.context();
+            boundary2 = generateBoundary2(ingestRepo);
+            System.out.println("\"\\n" + //
+                                "\\n" + //
+                                "---\\n" + //
+                                "\\n" + //
+                                "\" Anaylze and Print");
+            serviceBoundary.analyzeAndPrint(codeFiles);
+            
+
+
             log.info("Service boundary generated in {}ms", System.currentTimeMillis() - stepStart);
             totalTime += (System.currentTimeMillis() - stepStart);
         } catch (Exception e) {
-            boundary = "Error identifying service boundary.";
+            boundary2 = "Error identifying service boundary.";
             log.error("Service boundary extraction failed", e);
         }
     
@@ -153,16 +170,6 @@ public class RagService {
     
         try {
             long stepStart = System.currentTimeMillis();
-            recommendations = generateRecommendations(repoId, dependencies, boundary, archDiagram, analysis);
-            log.info("Recommendations generated in {}ms", System.currentTimeMillis() - stepStart);
-            totalTime += (System.currentTimeMillis() - stepStart);
-        } catch (Exception e) {
-            recommendations = "Error providing recommendations.";
-            log.error("Recommendation generation failed", e);
-        }
-    
-        try {
-            long stepStart = System.currentTimeMillis();
             architectureRec = generateArchitecture(repoId,dependencies, boundary, archDiagram, analysis);
             log.info("Refactored architecture generated in {}ms", System.currentTimeMillis() - stepStart);
             totalTime += (System.currentTimeMillis() - stepStart);
@@ -175,7 +182,7 @@ public class RagService {
       
 
     
-        Report finalReport = new Report(repoId, dependencies, analysis, archDiagram, boundary, recommendations, architectureRec);
+        Report finalReport = new Report(repoId, dependencies, analysis, archDiagram, boundary2, recommendations, architectureRec);
 
         try {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
@@ -200,11 +207,9 @@ public class RagService {
 
     public String generateAnalysis(String repoId, String dependencies, String boundary, String archDiagram) {
         String filter = "repo == '" + repoId + "'";
-    
         List<Scoring> criteria = jsonUtils.loadScoringJson(Paths.get("doc/msa-scoring.json"));
         List<Pattern> allPatterns = jsonUtils.loadPatternsJson(Paths.get("doc/msa-patterns.json"));
-
-      
+    
         List<Document> docs = vectorStore.similaritySearch(
             SearchRequest.builder()
                 .query("Summarize architecture patterns and anti-patterns for microservices")
@@ -213,56 +218,42 @@ public class RagService {
                 .build()
         );
     
-        if (docs.isEmpty()) {
-            return "Insufficient repository context found for generating analysis.";
-        }
+        if (docs.isEmpty()) return "Insufficient repository context found for generating analysis.";
     
-        String repoContext = docs.stream()
-            .map(Document::getText)
-            .limit(10)
-            .collect(Collectors.joining("\n---\n"));
+        String repoContext = docs.stream().map(Document::getText).limit(10).collect(Collectors.joining("\n---\n"));
     
-       
         String lowerDeps = dependencies.toLowerCase();
         String lowerArch = archDiagram.toLowerCase();
         String lowerBoundary = boundary.toLowerCase();
     
         List<Pattern> relevantPatterns = allPatterns.stream()
-            .filter(p ->
-                Stream.of(lowerDeps, lowerArch, lowerBoundary).anyMatch(text ->
-                    text.contains(p.getName().toLowerCase())
-                )
-            )
+            .filter(p -> Stream.of(lowerDeps, lowerArch, lowerBoundary).anyMatch(text -> text.contains(p.getName().toLowerCase())))
             .collect(Collectors.toList());
     
         String shortPatternSummaries = relevantPatterns.stream()
             .map(p -> "- " + p.getName() + ": " + p.getDescription())
             .collect(Collectors.joining("\n"));
     
-        String scoringContext = criteria.stream()
-            .map(c -> {
-                StringBuilder patternMatches = new StringBuilder();
-                if (c.getPatterns() != null && !c.getPatterns().isEmpty()) {
-                    patternMatches.append("Patterns:\n");
-                    for (String patternName : c.getPatterns()) {
-                        allPatterns.stream()
-                            .filter(p -> p.getName().equalsIgnoreCase(patternName))
-                            .findFirst()
-                            .ifPresent(p -> patternMatches
-                                .append("- ").append(p.getName()).append(": ").append(p.getDescription()).append("\n"));
-                    }
+        String scoringContext = criteria.stream().map(c -> {
+            StringBuilder sb = new StringBuilder();
+            if (c.getPatterns() != null && !c.getPatterns().isEmpty()) {
+                sb.append("Patterns:\n");
+                for (String pattern : c.getPatterns()) {
+                    allPatterns.stream()
+                        .filter(p -> p.getName().equalsIgnoreCase(pattern))
+                        .findFirst()
+                        .ifPresent(p -> sb.append("- ").append(p.getName()).append(": ").append(p.getDescription()).append("\n"));
                 }
-                return String.format("""
-                    Criterion: %s
-                    Description: %s
-                    Guidance: %s
-                    %s
-                    Weight: %s
-                    """, c.getName(), c.getDescription(), c.getGuidance(), patternMatches, c.getWeight());
-            })
-            .collect(Collectors.joining("\n---\n"));
+            }
+            return String.format("""
+                Criterion: %s
+                Description: %s
+                Guidance: %s
+                %s
+                Weight: %s
+                """, c.getName(), c.getDescription(), c.getGuidance(), sb, c.getWeight());
+        }).collect(Collectors.joining("\n---\n"));
     
-      
         String contextString = """
             Repository architecture context:
             %s
@@ -283,171 +274,35 @@ public class RagService {
             %s
             """.formatted(repoContext, dependencies, boundary, archDiagram, shortPatternSummaries, scoringContext);
     
-        List<Message> messages = Arrays.asList(
+        Prompt prompt = new Prompt(List.of(
             new SystemMessage("""
-    You are a senior microservices architect.
+                You are a senior microservices architect.
     
-    Your task is to analyze a repository's architecture using the provided context.
+                Your task is to analyze a repository's architecture using the provided context.
     
-    1. **Detect** which architectural patterns from the list are evident based on the architecture diagram, dependencies, and boundaries.
-    2. For each detected pattern, give a short reason why it's present.
-    3. Summarize advantages and disadvantages based on the chosen patterns.
-    4. Evaluate each scoring criterion:
-       - Describe how the system meets or fails the criterion.
-       - Mention patterns that support or hinder this.
-       - Suggest improvements.
-       - Score from 0 to 10.
+                1. **Detect** which architectural patterns are evident.
+                2. Explain each detected pattern.
+                3. Summarize strengths and weaknesses.
+                4. Evaluate criteria:
+                   - Score 0–10
+                   - List strengths, weaknesses, and improvements
     
-    At the end, compute an **overall weighted score**.
-    
-    Output format:
-    
-    ## Detected Patterns:
-    - <Pattern 1>: <Justification>
-    - ...
-    
-    ## Pattern-Based Summary:
-    **Advantages:**
-    - ...
-    
-    **Disadvantages:**
-    - ...
-    
-    ## Criterion: <Name>
-    - Score: <0-10>
-    - Strengths: ...
-    - Weaknesses: ...
-    - Suggested Improvements: ...
-    
-    ## Overall Score: <0-10>
-    Summary: ...
-    """),
+                End with:
+                ## Overall Score: <0-10>
+                Summary: ...
+            """),
             new UserMessage(contextString)
-        );
+        ));
     
-        ChatResponse response = chatModel.call(new Prompt(messages));
+        long start = System.currentTimeMillis();
+        ChatResponse response = chatModel.call(prompt);
+        log.info("Architecture analysis completed in {}ms", System.currentTimeMillis() - start);
+    
         return response.getResult().getOutput().getText();
     }
     
     
     
-    public String generateRecommendations(String repoId, String dependencies, String boundary, String archDiagram, String analysis) {
-        String filter = "repo == '" + repoId + "'";
-    
-        List<Document> docs = vectorStore.similaritySearch(
-            SearchRequest.builder()
-                .query("What are potential refactoring suggestions for microservice quality based on the analysis?")
-                .filterExpression(filter)
-                .topK(50)
-                .build()
-        );
-    
-        if (docs.isEmpty()) {
-            return "No refactor suggestions available for this repository.";
-        }
-    
-        String context = docs.stream()
-            .map(Document::getText)
-            .collect(Collectors.joining("\n---\n"));
-    
-        String contextString = """
-            Here is the repository context:
-            %s
-    
-            Here are the dependencies:
-            %s
-    
-            Here is the system boundary:
-            %s
-    
-            Here is the architecture diagram:
-            %s
-    
-            Here is the repository analysis:
-            %s
-            """.formatted(context, dependencies, boundary, archDiagram, analysis);
-    
-        List<Message> messages = Arrays.asList(
-            new SystemMessage("""
-    You are a senior software architect and microservices expert.
-    
-    Based on the repository's analysis, system boundary, architecture diagram, and dependencies, identify concrete **refactoring opportunities** to improve the following quality attributes:
-    
-    - Scalability
-    - Resilience
-    - Technology Diversity
-    - Agility
-    - Cost-Effectiveness
-    - Reusability
-    
-    Each recommendation must be **prioritized** according to scoring weights (assume higher-weighted criteria are more critical).
-    
-    
-    Output format (grouped by **Category**):
-    
-    ### Category: <e.g., Scalability>
-    
-    | Problem | Recommendation | Benefit | Pattern Reference |
-    |--------|----------------|---------|-------------------|
-    | ...    | ...            | ...     | ...               |
-    
-    If applicable, reference architectural patterns that support the recommendation (e.g., CQRS, Event Sourcing, Service Mesh).
-    
-    Be practical and specific—avoid vague guidance. Include implementation hints if relevant.
-    """),
-            new UserMessage(contextString)
-        );
-    
-        ChatResponse response = chatModel.call(new Prompt(messages));
-        return response.getResult().getOutput().getText();
-    }
-    
-
-    // public String generateArchitecture(String repoId, String dependencies, String boundary, String archDiagram, String analysis) {
-    //     String contextString = """
-    //         Here are the dependencies:
-    //         %s
-    
-    //         Here is the system boundary:
-    //         %s
-    
-    //         Here is the current architecture diagram:
-    //         %s
-    
-    //         Here is the architectural analysis:
-    //         %s
-    //         """.formatted(dependencies, boundary, archDiagram, analysis);
-    
-    //     List<Message> messages = List.of(
-    //         new SystemMessage("""
-    //             You are a software architecture expert.
-    
-    //             Based on the current architecture, dependencies, system boundary, and analysis:
-    //             - Propose a **fully refactored microservice architecture**.
-    //             - The goal is to improve **modularity**, **scalability**, **maintainability**, and **alignment with microservice patterns**.
-    //             - Reduce coupling and enforce clear service boundaries.
-    //             - **Use the same ASCII format starting with '├──', '└──', etc.**
-    //             -**DO NOT** output a service boundary diagram or domain 
-    //             - Ensure the diagram is complete and readable.
-    
-    //             After the diagram, include a concise explanation of:
-    //             - Key improvements made.
-    //             - Which microservice patterns were used (e.g., CQRS, Saga, Service Mesh).
-    //             - Why this architecture is more robust.
-    //         """),
-    //         new UserMessage(contextString)
-    //     );
-    
-    //     ChatResponse response = chatModel.call(new Prompt(messages));
-    //     String output = response.getResult().getOutput().getText();
-
-
-    //     if (!output.contains("├──") && !output.contains("└──")) {
-    //         System.out.println("Warning: No valid ASCII diagram found in output: " + output);
-    //     }
-    //     return output;
-    // }
-
     public String generateArchitecture(String repoId, String dependencies, String boundary, String archDiagram, String analysis) {
         String contextString = """
             Repository ID: %s
@@ -467,107 +322,75 @@ public class RagService {
             Based on this, refactor the codebase to improve clarity, separation of concerns, and modern best practices.
             """.formatted(repoId, dependencies, boundary, archDiagram, analysis);
     
-        List<Message> messages = List.of(
+        Prompt prompt = new Prompt(List.of(
             new SystemMessage("""
                 You are a senior microservices architect.
     
-                Your task is to **refactor** a monolithic or loosely-coupled codebase into a robust, scalable **microservices architecture** using the provided directory structure and code relationships.
+                Refactor the codebase using this structure:
+                - Return an **ASCII tree** architecture diagram using '├──' and '└──'
+                - Introduce: API Gateway, Config Server, Event Bus, Discovery Server
+                - Group services logically (e.g. users, payments)
+                - Mark event producers/consumers
+                - Optimize for modularity and resilience
     
-                **Deliverables**:
-                1. A refactored architecture in **ASCII tree diagram format**, based on directory structure.
-                2. Introduce and place:
-                   - API Gateway
-                   - Config Server
-                   - Event Bus (Kafka / RabbitMQ)
-                   - Discovery Server (Eureka/Consul if applicable)
-                3. Group services logically (e.g., users, payments, orders).
-                4. Indicate which services are producers/consumers of events (if any).
-                5. Optimize for **modularity, config centralization, and fault tolerance**.
-                6. After the diagram, briefly explain:
-                   - The new structure
-                   - Where config/gateway/bus/discovery were added
-                   - How it improves maintainability and scalability
+                Then, explain:
+                - New architecture
+                - What changed and why
+                - Patterns applied
             """),
             new UserMessage(contextString)
-        );
+        ));
     
-        ChatResponse response = chatModel.call(new Prompt(messages));
+        long start = System.currentTimeMillis();
+        ChatResponse response = chatModel.call(prompt);
         String output = response.getResult().getOutput().getText();
+        log.info("Architecture refactoring completed in {}ms", System.currentTimeMillis() - start);
     
         if (!output.contains("├──") && !output.contains("└──")) {
-            System.out.println("Warning: No valid ASCII diagram found in output: " + output);
+            log.warn("Expected ASCII diagram not found in architecture output:\n{}", output);
         }
     
         return output;
     }
     
-    
-    
+    public String generateBoundary2(BinaryTreeNode repoUrl) throws JsonProcessingException{
+        Map<String, String> codeFiles = gitHubApi.extractCode(repoUrl);
 
-    public String generateBoundary(String repoId, BinaryTreeNode root) {
-        try {
-            Map<String, String> files = gitHubApi.extractCode(root);
-            if (files == null || files.isEmpty()) {
-                return "No source files found for repository: " + repoId;
-            }
+        List<ServiceBoundaryUtils.ServiceBoundary> artifacts = serviceBoundary.extractFiles(codeFiles);
+        ServiceBoundaryUtils.ArchitectureMap archMap = serviceBoundary.fallback(artifacts);
     
-            List<ServiceBoundaryUtils.ServiceBoundary> artifacts = serviceBoundary.extractCode(files);
-            if (artifacts.isEmpty()) {
-                return "No service boundary artifacts extracted from repository: " + repoId;
-            }
+        archMap.serviceCalls = serviceBoundary.inferServiceRelations(archMap);
+
+        archMap.printLayers();
+
+        String diagram = serviceBoundary.generateFlatDiagramWithClearArrows(archMap);
+        System.out.println("Here is the digram" + diagram);
+                return diagram;
+
+    }
+
+   
+
     
-            String formattedCode = serviceBoundary.format(artifacts);
-    
-            List<Message> messages = List.of(
-                new SystemMessage("""
-                    You are a software architecture expert.
-                    Based on the following code snippets and identified layers,
-                    identify logical service boundaries and their responsibilities.
-                    Return ONLY a JSON object without any explanation or formatting.
-                    If you cannot, return an empty JSON object {}.
-                """),
-                new UserMessage("Code context:\n" + formattedCode)
-            );
-    
-            ChatResponse response = chatModel.call(new Prompt(messages));
-            String output = response.getResult().getOutput().getText();
-            String jsonPart = serviceBoundary.extractJson(output);
-    
-           
-            if (jsonPart == null || jsonPart.isBlank() || jsonPart.trim().equals("{}")) {
-                return generateFallback("LLM could not extract boundaries.", artifacts);
-            }
-    
-            try {
-                new ObjectMapper().readTree(jsonPart); 
-            } catch (JsonProcessingException e) {
-                return generateFallback("LLM returned invalid JSON:\n" + jsonPart, artifacts);
-            }
-    
-            String asciiDiagram = serviceBoundary.generateAsciiDiagramFromLLMJson(jsonPart);
-            ArchitectureMap map = serviceBoundary.parseResponsbilities(asciiDiagram);
-            String boundaryContext = serviceBoundary.generateBoundaryContextDiagram(map);
-    
-            return asciiDiagram + "\n\n---\n\n" + boundaryContext + "\n\n---\n\n" + jsonPart;
-    
-        } catch (Exception e) {
-            return "An unexpected error occurred: " + e.getMessage();
+    public BoundaryResult inferBoundary(BinaryTreeNode root) {
+        Map<String, String> codeFiles = gitHubApi.extractCode(root);
+        
+        if (codeFiles == null || codeFiles.isEmpty()) {
+            return new BoundaryResult("No source code found.");
         }
+    
+        List<ServiceBoundary> artifacts = serviceBoundary.extractFiles(codeFiles);
+        if (artifacts.isEmpty()) {
+            return new BoundaryResult("No service boundary artifacts extracted.");
+        }
+    
+        ArchitectureMap map = serviceBoundary.fallback(artifacts);
+        String context = serviceBoundary.generateBoundaryContextDiagram(map);
+    
+        return new BoundaryResult(context);
     }
     
     
-    
-    
-    private String generateFallback(String string, List<ServiceBoundary> artifacts) {
-            ArchitectureMap fallbackMap = serviceBoundary.fallback(artifacts);
-            String fallbackDiagram = serviceBoundary.generateBoundaryContextDiagram(fallbackMap);
-            fallbackMap.printLayers();
-        
-            return string + "\n\n[FALLBACK DIAGRAM]\n" + fallbackDiagram;
-        }
-        
-
-
     public String answer(String question, String repoId) {
         List<Document> docs;
         Path jsonPath = Paths.get("/Users/madisonmigliori/Documents/NSF/NSF-SAR/rag/doc");
@@ -633,4 +456,51 @@ public class RagService {
         ChatResponse response = chatModel.call(new Prompt(messages));
         return response.getResult().getOutput().getText();
     }
+
+    public String testPromptOnly(String type, String repoId, String dependencies, String boundary, String archDiagram, String analysis) {
+        String promptText = switch (type) {
+            case "analysis" -> generateAnalysisPromptOnly(repoId, dependencies, boundary, archDiagram);
+            case "architecture" -> generateArchitecturePromptOnly(repoId, dependencies, boundary, archDiagram, analysis);
+            default -> throw new IllegalArgumentException("Unknown prompt type: " + type);
+        };
+        return promptText;
+    }
+
+    public String generateAnalysisPromptOnly(String repoId, String dependencies, String boundary, String archDiagram) {
+    
+        return """
+            Repository architecture context: (mocked)
+    
+            Dependencies:
+            %s
+    
+            System Boundaries:
+            %s
+    
+            Architecture Diagram:
+            %s
+            """.formatted(dependencies, boundary, archDiagram);
+    }
+    
+    public String generateArchitecturePromptOnly(String repoId, String dependencies, String boundary, String archDiagram, String analysis) {
+        return """
+            Repository ID: %s
+    
+            Dependency Information:
+            %s
+    
+            Identified Service Boundaries:
+            %s
+    
+            Current Architecture Diagram:
+            %s
+    
+            Architectural Analysis:
+            %s
+    
+            Based on this, refactor the codebase to improve clarity, separation of concerns, and modern best practices.
+            """.formatted(repoId, dependencies, boundary, archDiagram, analysis);
+    }
+    
+    
 }
