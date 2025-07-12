@@ -27,8 +27,9 @@ public class BinaryTreeNode {
         this.size = size;
     }
 
-    public void addChild(BinaryTreeNode parent, BinaryTreeNode child){
-        parent.children.add(child);
+    @Override
+    public String toString() {
+        return type + ": " + name;
     }
 
     public String getName(){
