@@ -18,7 +18,6 @@ public class Report {
     private String analysis;
     private String architecture;
     private String serviceBoundary;
-    private String recommendations;
     private String architectureRec;
 
 
@@ -47,9 +46,7 @@ public class Report {
     
             --- Identified Service Boundaries ---
             %s
-    
-            --- Recommended Improvements ---
-            %s
+
 
             --- Refactored Architecture Plan ---
             %s
@@ -59,7 +56,6 @@ public class Report {
             analysis,
             architecture,
             serviceBoundary,
-            recommendations,
             architectureRec
         );
     }

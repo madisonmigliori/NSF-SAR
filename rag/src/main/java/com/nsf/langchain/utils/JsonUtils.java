@@ -1,12 +1,16 @@
 package com.nsf.langchain.utils;
 
 import com.nsf.langchain.model.Scoring;
-import com.nsf.langchain.model.Pattern;
+import com.nsf.langchain.model.AntiPattern;
+import com.nsf.langchain.model.MSAPattern;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +26,7 @@ public class JsonUtils {
     private static final Logger log = LoggerFactory.getLogger(JsonUtils.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public List<Scoring> loadScoringJson(Path filePath){
+    public static List<Scoring> loadScoringJson(Path filePath){
         try{
             String content = Files.readString(filePath);
             JsonNode root = objectMapper.readTree(content);
@@ -39,23 +43,70 @@ public class JsonUtils {
         }
 
     }
-    public List<Pattern> loadPatternsJson(Path filePath){
+    public static List<MSAPattern> loadPatternsJson(Path filePath){
         try{
             String content = Files.readString(filePath);
             JsonNode root = objectMapper.readTree(content);
-            JsonNode criteriaNode = root.get("patterns");
+            JsonNode patternNode = root.get("patterns");
 
-            if(criteriaNode == null || !criteriaNode.isArray()){
+            if(patternNode == null || !patternNode.isArray()){
                 log.warn("No patterns array found: {}", filePath);
                 return List.of();
             }
-            return objectMapper.readerForListOf(Pattern.class).readValue(criteriaNode);
+            return objectMapper.readerForListOf(MSAPattern.class).readValue(patternNode);
         } catch (IOException e){
             log.error("Error reading patterns json {}: {}", filePath, e.getMessage());
             return List.of();
         }
 
     }
+
+    public Map<String, List<String>> loadDependencyJson(Path filePath) {
+    try {
+        String content = Files.readString(filePath);
+        JsonNode root = objectMapper.readTree(content);
+
+        Map<String, List<String>> categoryMap = new HashMap<>();
+
+        root.fields().forEachRemaining(entry -> {
+            String category = entry.getKey();
+            JsonNode libsNode = entry.getValue();
+            if (libsNode.isArray()) {
+                List<String> libs = new ArrayList<>();
+                libsNode.forEach(libNode -> libs.add(libNode.asText()));
+                categoryMap.put(category, libs);
+            }
+        });
+
+        return categoryMap;
+    } catch (IOException e) {
+        log.error("Error reading dependency category json {}: {}", filePath, e.getMessage());
+        return Map.of();
+    }
+
+    
+}
+public static List<AntiPattern> loadAntiPatternsJson(Path filePath){
+    try{
+        String content = Files.readString(filePath);
+        JsonNode root = objectMapper.readTree(content);
+        JsonNode antiNode = root.get("anti-patterns");
+
+        if(antiNode == null || !antiNode.isArray()){
+            log.warn("No anti-patterns array found: {}", filePath);
+            return List.of();
+        }
+        return objectMapper.readerForListOf(AntiPattern.class).readValue(antiNode);
+
+        
+    } catch (IOException e){
+        log.error("Error reading patterns json {}: {}", filePath, e.getMessage());
+        return List.of();
+
+        
+    }
+
+}
 
     
     

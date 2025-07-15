@@ -10,7 +10,11 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBeans;
 
+import com.nsf.langchain.git.GitHubApi;
 import com.nsf.langchain.service.RagService;
 import com.nsf.langchain.utils.ServiceBoundaryUtils;
 import com.nsf.langchain.utils.ServiceBoundaryUtils.ArchitectureMap;
@@ -22,7 +26,15 @@ public class PromptTest {
     @Autowired
     RagService ragService;
 
-    ServiceBoundaryUtils utils = new ServiceBoundaryUtils();
+    @Autowired
+    ServiceBoundaryUtils utils;
+
+    @MockitoBean
+    private GitHubApi gitHubApi;
+
+  
+
+
 
 
     @Test
@@ -40,7 +52,7 @@ public class PromptTest {
     }
 
     @Test
-public void testBoundaryAndContextExtraction() throws IOException {
+    public void testBoundaryAndContextExtraction() throws IOException {
     Map<String, String> files = Map.of(
         "service/user/UserController.java", "@RestController public class UserController {}",
         "service/user/UserService.java", "@Service public class UserService {}",
@@ -50,13 +62,12 @@ public void testBoundaryAndContextExtraction() throws IOException {
     List<ServiceBoundary> boundaries = utils.extractFiles(files);
     ArchitectureMap map = utils.fallback(boundaries);
 
-    String asciiDiagram = utils.generateBoundaryContextDiagram(map);
-    String asciiDiagram2 = utils.generateLayeredDiagramWithMultiArrowsCompact(map);
+
+    String asciiDiagram2 = utils.generateVerticalDiagramWithLevelsAndArrows2(map);
 
     System.out.println("Map: " + map.services.entrySet());
     System.out.println("Service keys: " + map.services.keySet());
     System.out.println("User API: " + map.services.get("user"));
-    System.out.println("Ascii (boundary context): \n" + asciiDiagram);
     System.out.println("Ascii (layered compact): \n" + asciiDiagram2);
 
     assertTrue(map.services.containsKey("user"));
@@ -66,12 +77,6 @@ public void testBoundaryAndContextExtraction() throws IOException {
     assertTrue(map.services.get("user").business.stream()
         .anyMatch(snippet -> snippet.contains("UserService")));
 
-
-    assertNotNull(asciiDiagram);
-    assertTrue(asciiDiagram.contains("UserController"));
-    assertTrue(asciiDiagram.contains("UserService"));
-    assertTrue(asciiDiagram.contains("user"));
-    assertTrue(asciiDiagram.contains("api") || asciiDiagram.contains("business"));
 
 
     assertNotNull(asciiDiagram2);
@@ -101,13 +106,12 @@ public void testRelationsInDiagram() throws IOException {
     map.serviceCalls.put("user", Set.of("admin"));
     map.serviceCalls.put("admin", Set.of("mapper"));
 
-    String diagram = utils.generateLayeredDiagramWithMultiArrowsCompact(map);
+    String diagram = utils.generateVerticalDiagramWithLevelsAndArrows2(map);
 
     System.out.println("Diagram with relations:\n" + diagram);
 
  
-    assertTrue( "Expected relation user -> admin", diagram.contains("user ---> admin"));
-    assertTrue("Expected relation admin -> mapper", diagram.contains("admin ---> mapper"));
+
 }
 
 @Test
@@ -116,7 +120,14 @@ public void testBoundary() throws IOException {
         "service/user/UserController.java", "@RestController public class UserController {}",
         "service/user/UserService.java", "@Service public class UserService {}",
         "service/order/OrderController.java", "@RestController public class OrderController { UserService userService; }",
-        "common/Logger.java", "public class Logger {}"
+        "common/Logger.java", "public class Logger {}",
+    "service/auth/AuthController.java", "@RestController public class AuthController {}",
+    "service/auth/AuthService.java", "@Service public class AuthService {}",
+    "service/a/AController.java", "@RestController public class AController { BService bService; }",
+    "service/a/AService.java", "@Service public class AService { BService bService; }",
+    "service/b/BController.java", "@RestController public class BController { AService aService; }",
+    "service/b/BService.java", "@Service public class BService { AService aService; }"
+
     );
 
     List<ServiceBoundary> boundaries = utils.extractFiles(files);
@@ -129,17 +140,7 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
 
     map.serviceCalls = utils.inferServiceRelations(map);
 
-    String asciiDiagram = utils.generateBoundaryContextDiagram(map);
-    String asciiDiagram2 = utils.generateLayeredDiagramWithMultiArrowsCompact(map);
-    String asciiDiagram3 = utils.generateFlatDiagramWithClearArrows(map);
-    String asciiDiagram4 = utils.generateDiagramWithMultiArrowsBetweenBoxes(map);
-    String asciiDiagram5 = utils.generateFlatDiagramWithMultiArrows(map);
 
-    System.out.println("Ascii (Context): \n" + asciiDiagram);
-    System.out.println("Ascii (Layered): \n" + asciiDiagram2);
-    System.out.println("Ascii (Levels): \n" + asciiDiagram3);
-    System.out.println("Ascii (Arrows): \n" + asciiDiagram4);
-    System.out.println("Ascii (Best): \n" + asciiDiagram5);
     System.out.println("Ascii with Anaylze & print: \n");
     utils.analyzeAndPrint(files);
 

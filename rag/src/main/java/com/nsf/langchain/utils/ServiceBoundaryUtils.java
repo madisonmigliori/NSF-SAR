@@ -16,15 +16,20 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.testcontainers.shaded.org.apache.commons.lang3.arch.Processor.Arch;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nsf.langchain.service.RagService;
+
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -34,7 +39,30 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Component
 public class ServiceBoundaryUtils {
 
-    public record ServiceBoundary(String filePath, String language,String layer, String indicator, String snippet){}
+    private static final Logger log = LoggerFactory.getLogger(ServiceBoundaryUtils.class);
+
+    private static final int MAX_ITEM_LENGTH = 25;
+    private static final int TRUNCATE_AT = 22;
+
+    public record ServiceBoundary(String filePath, String language,String layer, String indicator, String snippet){
+
+       }
+    
+       private static final List<String> LAYER_PRIORITY = List.of(
+        "entity", "repository", "business", "api", "presentation", "shared", "apiGateway"
+    );
+    
+    private static final Map<String, String> LAYER_LABELS = Map.of(
+        "entity", "Entity",
+        "repository", "Repository",
+        "business", "Business",
+        "api", "API",
+        "presentation", "Presentation",
+        "shared", "Shared",
+        "apiGateway", "API Gateway"
+    );
+    
+
 
     private static final Pattern API_PATTERN = Pattern.compile(
         "(?i)(@RestController|@Controller|@RequestMapping|@GetMapping|@PostMapping" +
@@ -72,7 +100,6 @@ private static final Pattern SHARED_PATTERN = Pattern.compile(
     "|Common\\b|Middleware\\b|Filter\\b|Interceptor\\b|Adapter\\b|Transformer\\b|Bridge\\b|Base\\b|Shared\\b|Wrapper\\b|Factory\\b|Strategy\\b)\\b"
 );
 
-    
 
 
     public static class ArchitectureMap{
@@ -84,39 +111,14 @@ private static final Pattern SHARED_PATTERN = Pattern.compile(
             public List<String> repository = new ArrayList<>();
             public List<String> apiGateway = new ArrayList<>();
             public List<String> shared = new ArrayList<>();
+            public Map<String, Set<String>> layerToClasses = new HashMap<>();
         }
 
-        
+      
         public Map<String, LayeredService> services = new HashMap<>();
         public Map<String, Set<String>> serviceCalls = new LinkedHashMap<>();
 
-        public static ArchitectureMap fromJson(String json) throws IOException {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(json);
-            ArchitectureMap map = new ArchitectureMap();
-
-            Iterator<String> fieldNames = root.fieldNames();
-            while(fieldNames.hasNext()){
-                String serviceName = fieldNames.next();
-                JsonNode serviceNode = root.get(serviceName);
-
-                LayeredService service = new LayeredService();
-                service.presentation = extractList(serviceNode, "presentation");
-                service.api = extractList(serviceNode, "api");
-                service.business = extractList(serviceNode, "business");
-                service.entity = extractList(serviceNode, "entity");
-                service.repository = extractList(serviceNode, "repository");
-                service.apiGateway = extractList(serviceNode, "apiGateway");
-                service.shared = extractList(serviceNode, "shared");
-
-
-                map.services.put(serviceName, service);
-
-
-            }
-            return map;
-        }
-
+        
         public static List<String> extractList(JsonNode node, String fieldName){
             List<String> list = new ArrayList<>();
             if (node.has(fieldName)) {
@@ -126,6 +128,42 @@ private static final Pattern SHARED_PATTERN = Pattern.compile(
             }
             return list;
         }
+
+        public static void elevateAndDeduplicateSharedAndEntityLayers(ArchitectureMap map) {
+            Set<String> globalEntities = new HashSet<>();
+            Set<String> globalShared = new HashSet<>();
+        
+            for (Map.Entry<String, ArchitectureMap.LayeredService> entry : map.services.entrySet()) {
+                ArchitectureMap.LayeredService svc = entry.getValue();
+        
+                Map<String, Set<String>> cleanedLayers = assignClassesUniqueLayer(svc.layerToClasses);
+        
+                Set<String> entities = cleanedLayers.remove("entity");
+                if (entities != null) globalEntities.addAll(entities);
+        
+                Set<String> shared = cleanedLayers.remove("shared");
+                if (shared != null) globalShared.addAll(shared);
+        
+                svc.presentation = new ArrayList<>(cleanedLayers.getOrDefault("presentation", Set.of()));
+                svc.api = new ArrayList<>(cleanedLayers.getOrDefault("api", Set.of()));
+                svc.business = new ArrayList<>(cleanedLayers.getOrDefault("business", Set.of()));
+                svc.repository = new ArrayList<>(cleanedLayers.getOrDefault("repository", Set.of()));
+                svc.apiGateway = new ArrayList<>(cleanedLayers.getOrDefault("apiGateway", Set.of()));
+                svc.shared = new ArrayList<>();
+                svc.entity = new ArrayList<>();
+                svc.layerToClasses= cleanedLayers;
+            }
+        
+            
+            ArchitectureMap.LayeredService modelService = new ArchitectureMap.LayeredService();
+            modelService.entity = new ArrayList<>(globalEntities);
+            map.services.put("model", modelService);
+        
+            ArchitectureMap.LayeredService sharedService = new ArchitectureMap.LayeredService();
+            sharedService.shared = new ArrayList<>(globalShared);
+            map.services.put("shared", sharedService);
+        }
+        
 
 
     public void printLayers() {
@@ -360,150 +398,82 @@ private String inferLayer(String indicator) {
         .map(a -> String.format("[Service Boundary Identification]\nFile: %s\nType: %s\nIndicator: %s\nCode Snippet:\n%s\n---", 
         a.filePath(), a.language(), a.layer(), a.indicator(), a.snippet()))
         .collect(Collectors.joining("\n"));
+
     }
 
-
-
-
+    public Map<String, Set<String>> buildDependencyGraph(List<ServiceBoundary> services) {
+        Map<String, Set<String>> graph = new HashMap<>();
     
-    public String generateBoundaryContextDiagram(ArchitectureMap map) {
-        Set<String> includedServices = map.services.keySet();
-    
-        Map<String, Set<String>> serviceToShared = new HashMap<>();
-        Map<String, Set<String>> edges = new HashMap<>();
-    
-  
-        for (Map.Entry<String, ArchitectureMap.LayeredService> entry : map.services.entrySet()) {
-            String service = entry.getKey();
-            if (!includedServices.contains(service)) continue;
-    
-            Set<String> sharedItems = new HashSet<>(entry.getValue().shared);
-            serviceToShared.put(service, sharedItems);
+        Map<String, String> serviceLayers = new HashMap<>();
+        for (ServiceBoundary service : services) {
+            String serviceName = inferServiceName(service.filePath()).toLowerCase().trim();
+            serviceLayers.put(serviceName, service.layer().toLowerCase());
         }
     
+        Set<String> allServiceNames = serviceLayers.keySet();
     
-        for (Map.Entry<String, Set<String>> entryA : serviceToShared.entrySet()) {
-            String serviceA = entryA.getKey();
-            Set<String> sharedA = entryA.getValue();
+        for (ServiceBoundary service : services) {
+            String serviceName = inferServiceName(service.filePath()).toLowerCase().trim();
+            String serviceLayer = serviceLayers.getOrDefault(serviceName, "unknown");
     
-            for (Map.Entry<String, Set<String>> entryB : serviceToShared.entrySet()) {
-                String serviceB = entryB.getKey();
-                if (serviceA.equals(serviceB)) continue;
+            Set<String> dependencies = graph.computeIfAbsent(serviceName, k -> new HashSet<>());
     
-                Set<String> sharedB = entryB.getValue();
-                Set<String> intersection = new HashSet<>(sharedA);
-                intersection.retainAll(sharedB);
-    
-                if (!intersection.isEmpty()) {
-                    edges.computeIfAbsent(serviceA, k -> new HashSet<>()).add(serviceB);
-                }
+            // Add default layered dependencies only if they exist in allServiceNames
+            switch (serviceLayer) {
+                case "api":
+                    if (allServiceNames.contains("config")) dependencies.add("config");
+                    break;
+                case "apigateway":
+                    if (allServiceNames.contains("shared")) dependencies.add("shared");
+                    break;
+                case "presentation":
+                    if (allServiceNames.contains("api")) dependencies.add("api");
+                    if (allServiceNames.contains("shared")) dependencies.add("shared");
+                    break;
+                case "business":
+                    if (allServiceNames.contains("repository")) dependencies.add("repository");
+                    if (allServiceNames.contains("shared")) dependencies.add("shared");
+                    break;
+                case "repository":
+                    if (allServiceNames.contains("entity")) dependencies.add("entity");
+                    if (allServiceNames.contains("shared")) dependencies.add("shared");
+                    break;
+                case "admin":
+                    if (allServiceNames.contains("business")) dependencies.add("business");
+                    if (allServiceNames.contains("repository")) dependencies.add("repository");
+                    break;
+                default:
+                    log.warn("Unknown service layer '{}' for service '{}'", serviceLayer, serviceName);
+                    break;
             }
-        }
     
-        StringBuilder sb = new StringBuilder();
-        for (String service : includedServices) {
-            sb.append("+------------------+\n");
-            sb.append("| ").append(padCenter(service, 18)).append(" |\n");
-            sb.append("+------------------+\n");
-    
-            ArchitectureMap.LayeredService layers = map.services.get(service);
-            if (layers != null) {
-                if (!layers.api.isEmpty()) {
-                    sb.append("api:\n");
-                    for (String snippet : layers.api) {
-                        sb.append("  - ").append(snippet).append("\n");
-                    }
-                }
-                if (!layers.business.isEmpty()) {
-                    sb.append("business:\n");
-                    for (String snippet : layers.business) {
-                        sb.append("  - ").append(snippet).append("\n");
-                    }
-                }
-                if (!layers.presentation.isEmpty()) {
-                    sb.append("presentation:\n");
-                    for (String snippet : layers.presentation) {
-                        sb.append("  - ").append(snippet).append("\n");
-                    }
-                }
-                if (!layers.entity.isEmpty()) {
-                    sb.append("entity:\n");
-                    for (String snippet : layers.entity) {
-                        sb.append("  - ").append(snippet).append("\n");
-                    }
-                }
-                if (!layers.apiGateway.isEmpty()) {
-                    sb.append("apiGateway:\n");
-                    for (String snippet : layers.apiGateway) {
-                        sb.append("  - ").append(snippet).append("\n");
-                    }
-                }
-                if (!layers.repository.isEmpty()) {
-                    sb.append("repository:\n");
-                    for (String snippet : layers.repository) {
-                        sb.append("  - ").append(snippet).append("\n");
-                    }
-                }
-                if (!layers.shared.isEmpty()) {
-                    sb.append("shared:\n");
-                    for (String snippet : layers.shared) {
-                        sb.append("  - ").append(snippet).append("\n");
-                    }
+        
+            String snippet = service.snippet().toLowerCase();
+            for (String otherServiceName : allServiceNames) {
+                if (serviceName.equals(otherServiceName)) continue;
+               
+                if (snippet.matches(".*\\b" + Pattern.quote(otherServiceName) + "\\b.*")) {
+                    dependencies.add(otherServiceName);
                 }
             }
     
-            Set<String> targets = edges.getOrDefault(service, new HashSet<>());
-            if (!targets.isEmpty()) {
-                sb.append("uses:\n");
-                for (String target : targets) {
-                    sb.append("  -> ").append(target).append("\n");
-                }
-            }
-            sb.append("\n");
+            dependencies.remove(serviceName); 
         }
     
-        return sb.toString();
+        return graph;
     }
     
 
-    public String generateLayeredDiagramWithMultiArrowsCompact(ArchitectureMap map) {
-        Set<String> services = map.services.keySet();
-    
-        Map<String, Set<String>> edges = new LinkedHashMap<>();
-        System.out.println("Service Calls:");
-map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
 
-        if (map.serviceCalls != null && !map.serviceCalls.isEmpty()) {
-            for (Map.Entry<String, Set<String>> entry : map.serviceCalls.entrySet()) {
-                String from = entry.getKey();
-                for (String to : entry.getValue()) {
-                    if (!from.equals(to)) {
-                        edges.computeIfAbsent(from, k -> new HashSet<>()).add(to);
-                    }
-                }
-            }
-        } else {
-            Map<String, Set<String>> serviceToShared = new HashMap<>();
-            for (String service : services) {
-                serviceToShared.put(service, new HashSet<>(map.services.get(service).shared));
-            }
-            for (String a : services) {
-                for (String b : services) {
-                    if (a.equals(b)) continue;
-                    Set<String> sharedA = serviceToShared.getOrDefault(a, Set.of());
-                    Set<String> sharedB = serviceToShared.getOrDefault(b, Set.of());
-                    Set<String> intersection = new HashSet<>(sharedA);
-                    intersection.retainAll(sharedB);
-                    if (!intersection.isEmpty()) {
-                        edges.computeIfAbsent(a, k -> new HashSet<>()).add(b);
-                    }
-                }
-            }
-        }
+
     
+   
+
     
+    public String generateVerticalDiagramWithLevelsAndArrows2(ArchitectureMap map) {
+        Map<String, Set<String>> edges = map.serviceCalls;
         Map<String, Integer> inDegree = new HashMap<>();
-        for (String s : services) inDegree.put(s, 0);
+        for (String s : map.services.keySet()) inDegree.put(s, 0);
         for (Set<String> tos : edges.values()) {
             for (String to : tos) {
                 inDegree.put(to, inDegree.getOrDefault(to, 0) + 1);
@@ -512,8 +482,7 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
     
         Queue<String> queue = new LinkedList<>();
         Map<String, Integer> levels = new HashMap<>();
-    
-        for (String s : services) {
+        for (String s : map.services.keySet()) {
             if (inDegree.get(s) == 0) {
                 queue.add(s);
                 levels.put(s, 0);
@@ -524,8 +493,7 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
             String cur = queue.poll();
             int level = levels.get(cur);
             for (String nxt : edges.getOrDefault(cur, Set.of())) {
-                int prev = levels.getOrDefault(nxt, -1);
-                if (level + 1 > prev) {
+                if (levels.getOrDefault(nxt, -1) < level + 1) {
                     levels.put(nxt, level + 1);
                 }
                 inDegree.put(nxt, inDegree.get(nxt) - 1);
@@ -533,450 +501,192 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
             }
         }
     
-        for (String s : services) {
-            levels.putIfAbsent(s, 0);
-        }
+        for (String s : map.services.keySet()) levels.putIfAbsent(s, 0);
     
         Map<Integer, List<String>> servicesByLevel = new TreeMap<>();
         for (Map.Entry<String, Integer> entry : levels.entrySet()) {
             servicesByLevel.computeIfAbsent(entry.getValue(), k -> new ArrayList<>()).add(entry.getKey());
         }
     
-        StringBuilder sb = new StringBuilder();
+        final int H_SPACING = 6;
+        final int V_SPACING = 3; 
+        List<StringBuilder> lines = new ArrayList<>();
     
-        for (Map.Entry<Integer, List<String>> levelEntry : servicesByLevel.entrySet()) {
-            int level = levelEntry.getKey();
-            List<String> svcAtLevel = levelEntry.getValue();
+        class BoxMetadata {
+            int top, left, width, height;
+        }
+        Map<String, BoxMetadata> boxPositions = new HashMap<>();
     
-            sb.append("Level ").append(level).append(":\n");
-            for (String svc : svcAtLevel) {
+        int currentRow = 0;
+    
+
+        for (List<String> levelServices : servicesByLevel.values()) {
+            int maxHeight = 0;
+            List<String[]> renderedBoxes = new ArrayList<>();
+            List<Integer> boxWidths = new ArrayList<>();
+    
+            for (String svc : levelServices) {
                 ArchitectureMap.LayeredService layers = map.services.get(svc);
-                String box = generateCompactBox(svc, layers);
-                String indent = " ".repeat(level * 4);
-                for (String line : box.split("\n")) {
-                    sb.append(indent).append(line).append("\n");
-                }
-                sb.append("\n");
+                
+                String[] box = generateCompactBox(svc, layers).split("\n");
+                renderedBoxes.add(box);
+                maxHeight = Math.max(maxHeight, box.length);
+                boxWidths.add(box[0].length());
             }
+    
+            while (lines.size() < currentRow + maxHeight + V_SPACING) {
+                lines.add(new StringBuilder());
+            }
+    
+            int currentCol = 0;
+            for (int i = 0; i < levelServices.size(); i++) {
+                String svc = levelServices.get(i);
+                String[] box = renderedBoxes.get(i);
+                int boxWidth = boxWidths.get(i);
+    
+                for (int j = 0; j < box.length; j++) {
+                    StringBuilder line = lines.get(currentRow + j);
+                    while (line.length() < currentCol) line.append(' ');
+                    line.append(" ".repeat(currentCol - line.length()));
+                    line.append(box[j]);
+                }
+    
+                BoxMetadata meta = new BoxMetadata();
+                meta.top = currentRow;
+                meta.left = currentCol;
+meta.width = boxWidth;
+meta.height = box.length;
+boxPositions.put(svc, meta);
+
+    
+                currentCol += boxWidth + H_SPACING;
+            }
+    
+            currentRow += maxHeight + V_SPACING;
         }
     
-        sb.append("Relations:\n");
+        // Helper to ensure line and length
+        BiConsumer<Integer, Integer> ensureLineLength = (row, length) -> {
+            while (lines.size() <= row) lines.add(new StringBuilder());
+            StringBuilder line = lines.get(row);
+            while (line.length() < length) line.append(' ');
+        };
+    
+        // Draw arrows
+        Set<String> drawnPairs = new HashSet<>(); // For bidirectional tracking
         for (Map.Entry<String, Set<String>> edge : edges.entrySet()) {
-            int fromLevel = levels.getOrDefault(edge.getKey(), 0);
-            String indent = " ".repeat(fromLevel * 4);
+            String from = edge.getKey();
             for (String to : edge.getValue()) {
-                sb.append(indent).append(edge.getKey()).append(" ---> ").append(to).append("\n");
-            }
-        }
+                if (!boxPositions.containsKey(from) || !boxPositions.containsKey(to)) continue;
     
-        return sb.toString();
-    }
-
-    public String generateFlatDiagramWithClearArrows(ArchitectureMap map) {
-        Set<String> services = map.services.keySet();
-        Map<String, Set<String>> edges = map.serviceCalls;
+                BoxMetadata fromBox = boxPositions.get(from);
+                BoxMetadata toBox = boxPositions.get(to);
     
-        // Generate boxes & record their positions
-        Map<String, String[]> boxLines = new LinkedHashMap<>();
-        Map<String, Integer> boxWidths = new LinkedHashMap<>();
-        int boxHeight = 0;
+                int fromMidRow = fromBox.top + fromBox.height / 2;
+                int toMidRow = toBox.top + toBox.height / 2;
+                int fromMidCol = fromBox.left + fromBox.width / 2;
+                int toMidCol = toBox.left + toBox.width / 2;
     
-        for (String svc : services) {
-            ArchitectureMap.LayeredService layers = map.services.get(svc);
-            String box = generateCompactBox(svc, layers);
-            String[] lines = box.split("\n");
-            boxLines.put(svc, lines);
-            boxWidths.put(svc, lines[0].length());
-            boxHeight = Math.max(boxHeight, lines.length);
-        }
+                String pairKey = from + "->" + to;
+                String revPairKey = to + "->" + from;
     
-        // Spacing between boxes
-        int spacing = 4;
+                if (levels.get(from).equals(levels.get(to))) {
+                    int arrowRow = fromMidRow - 1; 
+                    if (arrowRow < 0) arrowRow = fromBox.top + fromBox.height;
     
-        // Calculate total width and each box's start position
-        Map<String, Integer> positions = new LinkedHashMap<>();
-        int currentPos = 0;
-        for (String svc : services) {
-            positions.put(svc, currentPos);
-            currentPos += boxWidths.get(svc) + spacing;
-        }
+                    ensureLineLength.accept(arrowRow, Math.max(fromMidCol, toMidCol) + 20);
+                    StringBuilder line = lines.get(arrowRow);
     
-        // Build output line by line for boxes
-        StringBuilder sb = new StringBuilder();
+                    int start = Math.min(fromMidCol, toMidCol);
+                    int end = Math.max(fromMidCol, toMidCol);
     
-        for (int lineIndex = 0; lineIndex < boxHeight; lineIndex++) {
-            StringBuilder line = new StringBuilder();
-            for (String svc : services) {
-                String[] lines = boxLines.get(svc);
-                int width = boxWidths.get(svc);
-                if (lineIndex < lines.length) {
-                    line.append(lines[lineIndex]);
-                } else {
-                    line.append(" ".repeat(width));
-                }
-                line.append(" ".repeat(spacing));
-            }
-            sb.append(line.toString()).append("\n");
-        }
-    
-        // Blank line between boxes and arrows
-        sb.append("\n");
-    
-        // Draw arrows with labels below boxes
-        for (String from : edges.keySet()) {
-            for (String to : edges.get(from)) {
-                int fromPos = positions.get(from);
-                int toPos = positions.get(to);
-    
-                int fromCenter = fromPos + boxWidths.get(from) / 2;
-                int toCenter = toPos + boxWidths.get(to) / 2;
-    
-                // Calculate arrow length and direction
-                StringBuilder arrowLine = new StringBuilder(" ".repeat(currentPos));
-    
-                if (fromCenter < toCenter) {
-                    // arrow right
-                    for (int i = fromCenter; i < toCenter; i++) arrowLine.setCharAt(i, '-');
-                    arrowLine.setCharAt(toCenter, '>');
-                } else if (fromCenter > toCenter) {
-                    // arrow left
-                    for (int i = toCenter + 1; i < fromCenter; i++) arrowLine.setCharAt(i, '-');
-                    arrowLine.setCharAt(toCenter, '<');
-                } else {
-                    // same center, just arrow head
-                    arrowLine.setCharAt(toCenter, '*');
-                }
-    
-                sb.append(arrowLine.toString()).append("\n");
-    
-                int labelStart = Math.min(fromCenter, toCenter);
-                int labelEnd = Math.max(fromCenter, toCenter);
-                int labelWidth = labelEnd - labelStart + 1;
-                String label = from + " ---> " + to;
-    
-                if (label.length() > labelWidth) {
-                    label = label.substring(0, labelWidth);
-                }
-    
-                StringBuilder labelLine = new StringBuilder(" ".repeat(currentPos));
-                int labelPos = labelStart + (labelWidth - label.length()) / 2;
-    
-                for (int i = 0; i < label.length(); i++) {
-                    labelLine.setCharAt(labelPos + i, label.charAt(i));
-                }
-    
-                sb.append(labelLine.toString()).append("\n\n");
-            }
-        }
-    
-        return sb.toString();
-    }
-
-
-    public String generateDiagramWithMultiArrowsBetweenBoxes(ArchitectureMap map) {
-        List<String> svcList = new ArrayList<>(map.services.keySet());
-        Map<String, Set<String>> edges = map.serviceCalls;
-    
-        Map<String, String[]> boxLines = new LinkedHashMap<>();
-        Map<String, Integer> boxWidths = new LinkedHashMap<>();
-        int maxHeight = 0;
-    
-        // Prepare boxes & track max height
-        for (String svc : svcList) {
-            ArchitectureMap.LayeredService layers = map.services.get(svc);
-            String box = generateCompactBox(svc, layers);
-            String[] lines = box.split("\n");
-            boxLines.put(svc, lines);
-            boxWidths.put(svc, lines[0].length());
-            maxHeight = Math.max(maxHeight, lines.length);
-        }
-    
-        // Normalize box heights
-        for (String svc : svcList) {
-            String[] lines = boxLines.get(svc);
-            if (lines.length < maxHeight) {
-                String[] padded = new String[maxHeight];
-                int padTop = (maxHeight - lines.length) / 2;
-                int padBottom = maxHeight - lines.length - padTop;
-                int idx = 0;
-                for (; idx < padTop; idx++) padded[idx] = " ".repeat(boxWidths.get(svc));
-                System.arraycopy(lines, 0, padded, idx, lines.length);
-                idx += lines.length;
-                for (; idx < maxHeight; idx++) padded[idx] = " ".repeat(boxWidths.get(svc));
-                boxLines.put(svc, padded);
-            }
-        }
-    
-        // Space between boxes horizontally
-        int spacing = 6;
-    
-        // Arrow lines count between boxes (max number of arrows between those two boxes)
-        int maxArrowLines = 3; // max vertical arrows you want to support, can adjust
-    
-        // Build diagram lines here
-        List<StringBuilder> outputLines = new ArrayList<>();
-    
-        // For each box line + arrow lines except after last box line
-        for (int lineIdx = 0; lineIdx < maxHeight; lineIdx++) {
-            StringBuilder line = new StringBuilder();
-    
-            for (int i = 0; i < svcList.size(); i++) {
-                String svc = svcList.get(i);
-                line.append(boxLines.get(svc)[lineIdx]);
-                if (i < svcList.size() - 1) {
-                    // Add spacing for arrows area (arrows are on separate lines)
-                    line.append(" ".repeat(spacing));
-                }
-            }
-            outputLines.add(line);
-            
-            // Now add arrow lines **after** this box line if it’s the vertical middle of the box
-            if (lineIdx == maxHeight / 2) {
-                // We'll add multiple arrow lines vertically between boxes here
-                for (int arrowLineIdx = 0; arrowLineIdx < maxArrowLines; arrowLineIdx++) {
-                    StringBuilder arrowLine = new StringBuilder();
-    
-                    for (int i = 0; i < svcList.size(); i++) {
-                        int boxWidth = boxWidths.get(svcList.get(i));
-                        // For each box, add spaces for box width
-                        arrowLine.append(" ".repeat(boxWidth));
-                        if (i < svcList.size() - 1) {
-                            // Calculate arrows between svc[i] and svc[i+1]
-                            String from = svcList.get(i);
-                            String to = svcList.get(i + 1);
-    
-                            Set<String> fromTo = edges.getOrDefault(from, Set.of());
-                            Set<String> toFrom = edges.getOrDefault(to, Set.of());
-    
-                            // We'll draw one arrow per arrowLineIdx if available
-                            // Collect all arrows as lists
-                            List<String> rightArrows = new ArrayList<>();
-                            List<String> leftArrows = new ArrayList<>();
-    
-                            // For simplicity, one arrow per line max
-                            // But if you want multiple arrows between same services,
-                            // you can store those in map and draw here accordingly
-                            // For now: maxArrowLines = max arrows to draw
-    
-                            if (arrowLineIdx == 0) {
-                                // For example, first arrow line: draw right arrow if exists
-                                if (fromTo.contains(to)) rightArrows.add("-->");
-                                else rightArrows.add("   ");
-                                if (toFrom.contains(from)) leftArrows.add("<--");
-                                else leftArrows.add("   ");
-                            } else if (arrowLineIdx == 1) {
-                                // second line: no arrow or optional extension if you track multiple arrows
-                                rightArrows.add("   ");
-                                leftArrows.add("   ");
-                            } else {
-                                rightArrows.add("   ");
-                                leftArrows.add("   ");
-                            }
-    
-                            // Compose arrow line content:
-                            // If both directions, draw double arrow centered in spacing
-                            String arrowStr;
-                            if (rightArrows.get(0).equals("-->") && leftArrows.get(0).equals("<--")) {
-                                // double arrow centered in spacing
-                                int leftSpaces = spacing / 2 - 2;
-                                int rightSpaces = spacing - leftSpaces - 4;
-                                arrowStr = " ".repeat(leftSpaces) + "<->" + " ".repeat(rightSpaces);
-                            } else if (rightArrows.get(0).equals("-->")) {
-                                // right arrow aligned right side
-                                arrowStr = "-".repeat(spacing - 1) + ">";
-                            } else if (leftArrows.get(0).equals("<--")) {
-                                // left arrow aligned left side
-                                arrowStr = "<" + "-".repeat(spacing - 1);
-                            } else {
-                                arrowStr = " ".repeat(spacing);
-                            }
-                            arrowLine.append(arrowStr);
-                        }
+                    for (int c = start + 1; c < end; c++) {
+                        if (line.charAt(c) == ' ') line.setCharAt(c, '-');
                     }
-                    outputLines.add(arrowLine);
-                }
-            }
-        }
     
-    
-        return outputLines.stream().map(StringBuilder::toString).collect(Collectors.joining("\n"));
-    }
-    
-    public String generateFlatDiagramWithMultiArrows(ArchitectureMap map) {
-        List<String> services = new ArrayList<>(map.services.keySet());
-        Map<String, Set<String>> edges = map.serviceCalls;
-        Map<String, String[]> boxLines = new LinkedHashMap<>();
-        Map<String, Integer> boxWidths = new LinkedHashMap<>();
-        int boxHeight = 0;
-    
-        for (String svc : services) {
-            ArchitectureMap.LayeredService layers = map.services.get(svc);
-            String box = generateCompactBox(svc, layers);
-            String[] lines = box.split("\n");
-            boxLines.put(svc, lines);
-            boxWidths.put(svc, lines[0].length());
-            boxHeight = Math.max(boxHeight, lines.length);
-        }
-    
-        int spacing = 12; 
-    
-       
-        Map<String, Integer> positions = new HashMap<>();
-        int pos = 0;
-        for (String svc : services) {
-            positions.put(svc, pos);
-            pos += boxWidths.get(svc) + spacing;
-        }
-        int totalWidth = pos - spacing; // total width of the whole line
-    
-        // Prepare output lines buffer
-        List<StringBuilder> outputLines = new ArrayList<>();
-        // Add boxHeight lines for boxes
-        for (int i = 0; i < boxHeight; i++) {
-            outputLines.add(new StringBuilder(" ".repeat(totalWidth)));
-        }
-    
-        // Draw boxes side-by-side
-        for (int i = 0; i < services.size(); i++) {
-            String svc = services.get(i);
-            String[] lines = boxLines.get(svc);
-            int start = positions.get(svc);
-            int width = boxWidths.get(svc);
-    
-            for (int lineIdx = 0; lineIdx < boxHeight; lineIdx++) {
-                String content = lineIdx < lines.length ? lines[lineIdx] : " ".repeat(width);
-                StringBuilder lineSb = outputLines.get(lineIdx);
-                for (int c = 0; c < width; c++) {
-                    lineSb.setCharAt(start + c, content.charAt(c));
-                }
-            }
-        }
-    
-       
-        List<StringBuilder> arrowLines = new ArrayList<>();
-
-        class Arrow {
-            int fromPos, toPos;
-            boolean leftToRight;
-            boolean bidirectional;
-    
-            Arrow(int fromPos, int toPos, boolean bidir) {
-                this.fromPos = fromPos;
-                this.toPos = toPos;
-                this.leftToRight = fromPos < toPos;
-                this.bidirectional = bidir;
-            }
-    
-            int start() {
-                return Math.min(fromPos, toPos);
-            }
-            int end() {
-                return Math.max(fromPos, toPos);
-            }
-        }
-    
-        List<Arrow> arrows = new ArrayList<>();
-    
-        // Build list of arrows including bidirectional detection
-        for (int i = 0; i < services.size(); i++) {
-            String from = services.get(i);
-            int fromCenter = positions.get(from) + boxWidths.get(from) / 2;
-    
-            for (int j = 0; j < services.size(); j++) {
-                if (i == j) continue;
-                String to = services.get(j);
-                int toCenter = positions.get(to) + boxWidths.get(to) / 2;
-    
-                boolean fromTo = edges.getOrDefault(from, Set.of()).contains(to);
-                boolean toFrom = edges.getOrDefault(to, Set.of()).contains(from);
-    
-                if (fromTo && toFrom && i < j) {
-                    // Only add bidirectional once (when i < j)
-                    arrows.add(new Arrow(fromCenter, toCenter, true));
-                } else if (fromTo && !toFrom) {
-                    arrows.add(new Arrow(fromCenter, toCenter, false));
-                }
-            }
-        }
-    
-        // Function to find a free line index to place an arrow without overlapping
-        List<int[]> occupied = new ArrayList<>(); // each int[] = {start, end} occupied per line
-    
-        for (Arrow arrow : arrows) {
-            int start = arrow.start();
-            int end = arrow.end();
-            int lineIdx = 0;
-    
-            while (true) {
-                boolean conflict = false;
-                for (int[] occ : occupied) {
-                    if (occ[2] == lineIdx) { // same line
-                        // check overlap
-                        if (!(end < occ[0] || start > occ[1])) {
-                            conflict = true;
-                            break;
-                        }
+                    if (fromMidCol < toMidCol) {
+                        line.setCharAt(toMidCol, '>');
+                        line.append(" ").append(from).append(" --> ").append(to);
+                    } else {
+                        line.setCharAt(toMidCol, '<');
+                        line.append(" ").append(to).append(" <-- ").append(from);
                     }
-                }
-                if (!conflict) break;
-                lineIdx++;
-            }
-            occupied.add(new int[]{start, end, lineIdx});
-            // Ensure arrowLines has enough lines
-            while (arrowLines.size() <= lineIdx) {
-                arrowLines.add(new StringBuilder(" ".repeat(totalWidth)));
-            }
     
-            StringBuilder lineSb = arrowLines.get(lineIdx);
+                    // If bidirectional, draw reverse arrow on row below
+                    if (edges.getOrDefault(to, Set.of()).contains(from) && !drawnPairs.contains(revPairKey)) {
+                        int arrowRow2 = fromMidRow + fromBox.height;
+                        ensureLineLength.accept(arrowRow2, Math.max(fromMidCol, toMidCol) + 20);
+                        StringBuilder line2 = lines.get(arrowRow2);
     
-            // Draw arrow body
-            for (int p = start + 1; p < end; p++) {
-                lineSb.setCharAt(p, '-');
-            }
+                        for (int c = start + 1; c < end; c++) {
+                            if (line2.charAt(c) == ' ') line2.setCharAt(c, '-');
+                        }
     
-            if (arrow.bidirectional) {
-                lineSb.setCharAt(start, '<');
-                lineSb.setCharAt(end, '>');
-                // For bidir, add middle double arrow indicator
-                int mid = (start + end) / 2;
-                lineSb.setCharAt(mid, '=');
-            } else if (arrow.leftToRight) {
-                lineSb.setCharAt(end, '>');
-            } else {
-                lineSb.setCharAt(start, '<');
-            }
-        }
+                        if (toMidCol < fromMidCol) {
+                            line2.setCharAt(fromMidCol, '>');
+                            line2.append(" ").append(to).append(" --> ").append(from);
+                        } else {
+                            line2.setCharAt(fromMidCol, '<');
+                            line2.append(" ").append(from).append(" <-- ").append(to);
+                        }
+                        drawnPairs.add(pairKey);
+                        drawnPairs.add(revPairKey);
+                    }
     
-        // Append arrow lines after box lines
-        StringBuilder result = new StringBuilder();
-        for (StringBuilder boxLine : outputLines) {
-            result.append(boxLine).append("\n");
-        }
-        for (StringBuilder arrowLine : arrowLines) {
-            result.append(arrowLine).append("\n");
-        }
+                } else {
+                
     
-        return result.toString();
-    }
+                    int startRow = fromBox.top + fromBox.height;
+                    int endRow = toBox.top - 1;
+                    int arrowCol = fromMidCol;
     
-    
+                    if (startRow > endRow) {
 
+                        int temp = startRow;
+                        startRow = endRow;
+                        endRow = temp;
+                    }
     
+                    for (int r = startRow; r <= endRow; r++) {
+                        ensureLineLength.accept(r, arrowCol + 1);
+                        StringBuilder line = lines.get(r);
+                        line.setCharAt(arrowCol, '|');
+                    }
+    
+                    ensureLineLength.accept(endRow, arrowCol + 20);
+                    StringBuilder arrowLine = lines.get(endRow);
+                    arrowLine.setCharAt(arrowCol, 'v');
+                    arrowLine.append(" ").append(from).append(" --> ").append(to);
+                }
+            }
+        }
+    
+        return lines.stream().map(StringBuilder::toString).collect(Collectors.joining("\n"));
+    }
+
+   
     
     private String generateCompactBox(String service, ArchitectureMap.LayeredService layers) {
         List<String> lines = new ArrayList<>();
         lines.add(service);
     
-        addLayerLinesCompact(lines, "API", layers.api);
-        addLayerLinesCompact(lines, "Business", layers.business);
-        addLayerLinesCompact(lines, "Entity", layers.entity);
-        addLayerLinesCompact(lines, "Api Gateway", layers.apiGateway);
-        addLayerLinesCompact(lines, "Repository", layers.repository);
-        addLayerLinesCompact(lines, "Presentation", layers.presentation);
-        addLayerLinesCompact(lines, "Shared", layers.shared);
+        for (String layer : LAYER_PRIORITY) {
+            List<String> items = switch (layer) {
+                case "entity" -> layers.entity;
+                case "repository" -> layers.repository;
+                case "business" -> layers.business;
+                case "api" -> layers.api;
+                case "presentation" -> layers.presentation;
+                case "shared" -> layers.shared;
+                case "apiGateway" -> layers.apiGateway;
+                default -> List.of();
+            };
+            addLayerLinesCompact(lines, LAYER_LABELS.getOrDefault(layer, layer), items);
+        }
+        
     
         int maxWidth = lines.stream().mapToInt(String::length).max().orElse(0);
-        maxWidth = Math.min(Math.max(maxWidth + 4, 20), 30); // min 20, max 30
+        maxWidth = Math.min(Math.max(maxWidth + 4, 20), 30); 
     
         StringBuilder sb = new StringBuilder();
         sb.append(drawBoxTop(maxWidth)).append("\n");
@@ -987,28 +697,38 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
         return sb.toString();
     }
     
-   
-    
-    private void addLayerLinesCompact(List<String> lines, String layerName, List<String> items) {
-        if (items == null || items.isEmpty()) return;
-    
-        Set<String> seen = new HashSet<>();
-        List<String> cleanedItems = items.stream()
-            .filter(item -> !item.contains("Copyright"))
-            .filter(item -> !item.contains("package "))
-            .map(item -> {
-                String shortItem = item.length() > 25 ? item.substring(0, 22) + "..." : item;
-                return shortItem;
-            })
-            .filter(seen::add) 
-            .map(item -> "  - " + item)
-            .collect(Collectors.toList());
-    
-        if (!cleanedItems.isEmpty()) {
-            lines.add(layerName + ":");
-            lines.addAll(cleanedItems);
-        }
+
+    private String capitalize(String word) {
+        if (word == null || word.isEmpty()) return word;
+        return word.substring(0, 1).toUpperCase() + word.substring(1);
     }
+    
+    private String truncate(String s, int maxLength) {
+        return s.length() <= maxLength ? s : s.substring(0, maxLength - 3) + "...";
+    }
+    
+ 
+
+
+private void addLayerLinesCompact(List<String> lines, String layerName, List<String> items) {
+    if (items == null || items.isEmpty()) return;
+
+    Set<String> seen = new HashSet<>();
+    List<String> cleanedItems = items.stream()
+        .map(String::trim)
+        .filter(item -> !(item.contains("Copyright") || item.contains("package ")))
+        .filter(seen::add)
+        .map(item -> item.length() > MAX_ITEM_LENGTH ? item.substring(0, TRUNCATE_AT) + "..." : item)
+        .sorted(String.CASE_INSENSITIVE_ORDER)
+        .map(item -> "  - " + item)
+        .collect(Collectors.toList());
+
+    if (!cleanedItems.isEmpty()) {
+        lines.add(layerName + ":");
+        lines.addAll(cleanedItems);
+    }
+}
+
     
     
     
@@ -1028,17 +748,13 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
         return "| " + padRight(content, width - 4) + " |";
     }
     
-    private String padRight(String text, int width) {
-        return text + " ".repeat(Math.max(0, width - text.length()));
+
+    private String padRight(String str, int width) {
+        if (str.length() >= width) return str;
+        return str + " ".repeat(width - str.length());
     }
     
-    private String center(String text, int width) {
-        int padding = width - text.length();
-        int padStart = padding / 2;
-        int padEnd = padding - padStart;
-        return " ".repeat(padStart) + text + " ".repeat(padEnd);
-    }
-    
+
     
     private String padCenter(String text, int width) {
         int padding = width - text.length();
@@ -1048,58 +764,7 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
     }
 
 
-    public ArchitectureMap parseResponsibilities(String ascii) {
-        ArchitectureMap map = new ArchitectureMap();
     
-        String[] blocks = ascii.split("\\+[-]+\\+\\n");
-        for (String block : blocks) {
-            if (block.isBlank()) continue;
-    
-            String[] lines = block.split("\\n");
-            String serviceName = null;
-            ArchitectureMap.LayeredService layeredService = new ArchitectureMap.LayeredService();
-    
-            String currentLayer = null;
-    
-            for (String line : lines) {
-                line = line.trim().replace("|", "").trim();
-                if (line.isBlank()) continue;
-    
-                if (serviceName == null) {
-                    serviceName = line;
-                    continue;
-                }
-    
-                if (line.endsWith(":")) {
-                    currentLayer = line.substring(0, line.length() - 1).toLowerCase();
-                    continue;
-                }
-    
-                if (line.startsWith("-")) {
-                    String snippet = line.substring(1).trim();
-                    if (currentLayer == null) {
-                        layeredService.shared.add(snippet);
-                    } else {
-                        switch (currentLayer) {
-                            case "api" -> layeredService.api.add(snippet);
-                            case "business" -> layeredService.business.add(snippet);
-                            case "repository" -> layeredService.repository.add(snippet);
-                            case "entity" -> layeredService.entity.add(snippet);
-                            case "apiGateway" -> layeredService.apiGateway.add(snippet);
-                            case "presentation" -> layeredService.presentation.add(snippet);
-                            case "shared" -> layeredService.shared.add(snippet);
-                            default -> layeredService.shared.add(snippet);
-                        }
-                    }
-                }
-            }
-    
-            if (serviceName != null) {
-                map.services.put(serviceName, layeredService);
-            }
-        }
-        return map;
-    }
     
 
     
@@ -1181,7 +846,10 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
     public void analyzeAndPrint(Map<String, String> files) throws IOException {
         List<ServiceBoundary> boundaries = extractFiles(files);
         ArchitectureMap map = fallback(boundaries);
-    
+        Map<String, Set<String>> graph = buildDependencyGraph(boundaries);
+        System.out.println("Dependency Graph:");
+        graph.forEach((k, v) -> System.out.println(k + " -> " + v));
+        
         
         Map<String, Set<String>> inferredCalls = inferServiceRelations(map);
         System.out.println("Service Calls:");
@@ -1190,7 +858,7 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
         map.serviceCalls = inferredCalls;
     
         System.out.println("\n--- Boundary Context Diagram ---");
-        System.out.println(generateBoundaryContextDiagram(map));  
+        System.out.println(generateVerticalDiagramWithLevelsAndArrows2(map));
     }
     
    
@@ -1198,11 +866,28 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
     public Map<String, Set<String>> inferServiceRelations(ArchitectureMap map) {
         Map<String, Set<String>> detectedCalls = new HashMap<>();
     
-        for (String serviceA : map.services.keySet()) {
-            Set<String> calls = new HashSet<>();
-            ArchitectureMap.LayeredService layersA = map.services.get(serviceA);
+        // Build class-to-service map for O(1) lookup
+        Map<String, String> classToService = new HashMap<>();
+        for (var entry : map.services.entrySet()) {
+            String service = entry.getKey();
+            ArchitectureMap.LayeredService layers = entry.getValue();
+            List<String> allClasses = new ArrayList<>();
+            allClasses.addAll(layers.api);
+            allClasses.addAll(layers.business);
+            allClasses.addAll(layers.presentation);
+            allClasses.addAll(layers.entity);
+            allClasses.addAll(layers.apiGateway);
+            allClasses.addAll(layers.repository);
+            allClasses.addAll(layers.shared);
+            for (String cls : allClasses) {
+                classToService.put(cls.toLowerCase(), service);
+            }
+        }
     
-           
+        for (var entry : map.services.entrySet()) {
+            String serviceA = entry.getKey();
+            ArchitectureMap.LayeredService layersA = entry.getValue();
+    
             List<String> snippetsA = new ArrayList<>();
             snippetsA.addAll(layersA.api);
             snippetsA.addAll(layersA.business);
@@ -1212,30 +897,14 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
             snippetsA.addAll(layersA.repository);
             snippetsA.addAll(layersA.shared);
     
-            for (String serviceB : map.services.keySet()) {
-                if (serviceA.equals(serviceB)) continue;
-                ArchitectureMap.LayeredService layersB = map.services.get(serviceB);
+            Set<String> calls = new HashSet<>();
     
-           
-                List<String> classNamesB = new ArrayList<>();
-                classNamesB.addAll(layersB.api);
-                classNamesB.addAll(layersB.business);
-                classNamesB.addAll(layersB.presentation);
-                classNamesB.addAll(layersB.entity);
-                classNamesB.addAll(layersB.apiGateway);
-                classNamesB.addAll(layersB.repository);
-                classNamesB.addAll(layersB.shared);
-    
-                boolean depends = snippetsA.stream().anyMatch(snippetA ->
-                    classNamesB.stream().anyMatch(classB ->
-                        snippetA.toLowerCase().contains(classB.toLowerCase())
-                    )
-                );
-    
-                System.out.printf("Checking if %s uses %s -> %s\n", serviceA, serviceB, depends);
-    
-                if (depends) {
-                    calls.add(serviceB);
+            for (String snippet : snippetsA) {
+                String snippetLower = snippet.toLowerCase();
+                for (String cls : classToService.keySet()) {
+                    if (snippetLower.contains(cls) && !classToService.get(cls).equals(serviceA)) {
+                        calls.add(classToService.get(cls));
+                    }
                 }
             }
     
@@ -1247,5 +916,81 @@ map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
         return detectedCalls;
     }
     
+    public static Map<String, Set<String>> assignClassesUniqueLayer(Map<String, Set<String>> layered) {
+        Map<String, Set<String>> result = new HashMap<>();
+        Set<String> assignedClasses = new HashSet<>();
     
+        for (String layer : LAYER_PRIORITY) {
+            Set<String> classes = layered.getOrDefault(layer, Set.of());
+            for (String cls : classes) {
+                if (assignedClasses.add(cls)) {
+                    result.computeIfAbsent(layer, k -> new HashSet<>()).add(cls);
+                }
+            }
+        }
+        return result;
+    }
+    
+    private boolean dependsOnAny(Set<String> serviceClasses, Set<String> globalClasses) {
+        if (serviceClasses == null) return false;
+        for (String cls : serviceClasses) {
+            if (globalClasses.contains(cls)) return true;
+        }
+        return false;
+    }
+    
+    public static List<String> analyzeDependencies(Map<String, Set<String>> dependencyGraph) {
+        List<String> issues = new ArrayList<>();
+        
+        try {
+            if (hasCycles(dependencyGraph)) {
+                            issues.add("Circular dependency detected among services.");
+                        }
+                    } catch (Exception e) {
+                    
+                        e.printStackTrace();
+                    }
+                    
+                    Map<String, Integer> inDegree = new HashMap<>();
+                    for (var entry : dependencyGraph.entrySet()) {
+                        for (String dep : entry.getValue()) {
+                            inDegree.put(dep, inDegree.getOrDefault(dep, 0) + 1);
+                        }
+                    }
+                    
+                    inDegree.forEach((service, count) -> {
+                        if (count > 5) {
+                            issues.add("Service '" + service + "' is a dependency bottleneck (dependent on by " + count + " services).");
+                        }
+                    });
+                    
+                    return issues;
+                }
+                
+                private static boolean hasCycles(Map<String, Set<String>> graph) {
+        Set<String> visited = new HashSet<>();
+        Set<String> recursionStack = new HashSet<>();
+
+        for (String node : graph.keySet()) {
+            if (detectCycleDFS(node, graph, visited, recursionStack)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            
+                private static boolean detectCycleDFS(String current, Map<String, Set<String>> graph, Set<String> visited, Set<String> stack) {
+        if (stack.contains(current)) return true;
+        if (visited.contains(current)) return false;
+
+        visited.add(current);
+        stack.add(current);
+
+        for (String neighbor : graph.getOrDefault(current, Set.of())) {
+            if (detectCycleDFS(neighbor, graph, visited, stack)) return true;
+        }
+
+        stack.remove(current);
+        return false;
+    }
 }

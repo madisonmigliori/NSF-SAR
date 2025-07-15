@@ -291,31 +291,36 @@
             "name": "Fail Fast",
             "description": "Immediately terminates an operation when failure is expected or detected, conserving system resources and enabling fast recovery.",
             "advantage": "Improves system responsiveness and avoids cascading delays.",
-            "disadvantage": "May result in false negatives if not carefully calibrated. Requires accurate failure prediction."
+            "disadvantage": "May result in false negatives if not carefully calibrated. Requires accurate failure prediction.",
+            "common implementations": "N/A"
         },
         {
             "name": "Fallback",
             "description": "Provides default or alternative behavior when a service call fails, maintaining user experience and preventing full failure.",
             "advantage": "Supports graceful degradation and ensures some level of service availability.",
-            "disadvantage": "Fallback data may be outdated or limited in functionality. Increases complexity in design."
+            "disadvantage": "Fallback data may be outdated or limited in functionality. Increases complexity in design.",
+            "common implementations": "N/A"
         },
         {
             "name": "Throttling",
             "description": "Limits the number of requests to a service to avoid overload and maintain availability during peak traffic or attack scenarios.",
             "advantage": "Protects services from overload and preserves performance under stress.",
-            "disadvantage": "May delay or reject valid client requests. Needs intelligent limit-setting and user feedback mechanisms."
+            "disadvantage": "May delay or reject valid client requests. Needs intelligent limit-setting and user feedback mechanisms.",
+            "common implementations": "N/A"
         },
         {
             "name": "Load Leveling",
             "description": "Introduces a queue between request producer and consumer to buffer bursts and stabilize load over time.",
             "advantage": "Prevents system crashes from sudden traffic spikes and enables smoother load distribution.",
-            "disadvantage": "Adds latency and operational complexity. Requires queue management and potential scaling of consumers."
+            "disadvantage": "Adds latency and operational complexity. Requires queue management and potential scaling of consumers.",
+            "common implementations": "N/A"
         },
         {
             "name": "Priority Queue",
             "description": "Extends load leveling by assigning priority levels to requests, ensuring critical tasks are processed before less important ones.",
             "advantage": "Improves responsiveness for critical operations in resource-constrained scenarios.",
-            "disadvantage": "Risk of starvation for low-priority requests. Requires clear and consistent prioritization logic."
+            "disadvantage": "Risk of starvation for low-priority requests. Requires clear and consistent prioritization logic.",
+            "common implementations": "N/A"
         },
         {
             "name": "Timeout",
@@ -477,107 +482,6 @@
             "advantage": "Maintains order of related messages; supports concurrent processing across categories; eliminates race conditions for category-specific workflows.",
             "disadvantage": "Reduces throughput due to sequential processing per category; requires message broker with support for sessions or category locking.",
             "common implementations": "Azure Service Bus sessions, AWS SQS FIFO with message group ID, Kafka with partition keys and ordering guarantees"
-        }
-    ],
-    "anti-patterns": [
-        {
-            "name": "ESB Usage",
-            "description": "Use of an Enterprise Service Bus (ESB) can create a single point of failure and increase coupling, violating microservice independence.",
-            "impact": [
-                "High Coupling",
-                "Single Point of Failure"
-            ],
-            "severity": "High"
-        },
-        {
-            "name": "Too Many Standards",
-            "description": "Multiple frameworks or inconsistent standards across teams reduce maintainability and coherence.",
-            "impact": [
-                "Low Maintainability",
-                "Reduced Developer Efficiency"
-            ],
-            "severity": "Medium"
-        },
-        {
-            "name": "Wrong Cuts",
-            "description": "Splitting services by technical layers (e.g., data/business/presentation) rather than by business domain boundaries.",
-            "impact": [
-                "Poor Service Cohesion",
-                "Increased Inter-service Communication"
-            ],
-            "severity": "High"
-        },
-        {
-            "name": "Not Having an API Gateway",
-            "description": "Lack of an API Gateway leads to uncontrolled direct communication among services, especially in large systems.",
-            "impact": [
-                "Security Risks",
-                "Scalability Issues"
-            ],
-            "severity": "Medium"
-        },
-        {
-            "name": "Hard-Coded Endpoints",
-            "description": "Using hardcoded IPs or ports makes services brittle to infrastructure changes and reduces scalability.",
-            "impact": [
-                "Low Flexibility",
-                "Deployment Challenges"
-            ],
-            "severity": "High"
-        },
-        {
-            "name": "API Versioning",
-            "description": "Lack of API versioning creates difficulties in managing backward compatibility.",
-            "impact": [
-                "Deployment Risks",
-                "Service Instability"
-            ],
-            "severity": "Medium"
-        },
-        {
-            "name": "Microservice Greedy",
-            "description": "Creating microservices for every feature leads to excessive fragmentation and overhead.",
-            "impact": [
-                "Overhead",
-                "Reduced Performance"
-            ],
-            "severity": "Medium"
-        },
-        {
-            "name": "Shared Persistency",
-            "description": "Two or more services sharing the same database breaks data autonomy.",
-            "impact": [
-                "Data Coupling",
-                "Violation of Service Boundaries"
-            ],
-            "severity": "High"
-        },
-        {
-            "name": "Inappropriate Service Intimacy",
-            "description": "One service accessing private data of another breaks encapsulation.",
-            "impact": [
-                "Security Risks",
-                "Tight Coupling"
-            ],
-            "severity": "High"
-        },
-        {
-            "name": "Shared Libraries",
-            "description": "Tightly coupling microservices via common libraries increases fragility and change ripple.",
-            "impact": [
-                "Coupling",
-                "Low Modularity"
-            ],
-            "severity": "Medium"
-        },
-        {
-            "name": "Cyclic Dependency",
-            "description": "Cyclic service calls increase complexity and hinder maintainability.",
-            "impact": [
-                "Complex Call Chains",
-                "Debugging Difficulty"
-            ],
-            "severity": "High"
         }
     ]
 }

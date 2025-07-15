@@ -5,7 +5,7 @@
       "description": "Each microservice should operate independently, enabling individual components to be scaled without affecting the entire system.",
       "guidance": "Flag files with layers of dependencies and  function dependencies. Look for resilience patterns if implemented. Looking for configuration servers, service discovery, and api gateways.",
       "patterns": ["Proxy", "Sequential Convoy", "Service Mesh", "Domain-Driven Design", "Transaction", "Publish/Subscribe", "Strangler Fig", "Event-Driven Communication", "Asynchronous Communication", "Smart endpoint, dumb pipes", "Message Broker", "Token-Based Authentication", "Event-Driven Autoscaling", "Auto Scaling", "Valet Key", "Priority Queue", "Gateways", "Service Discovery", "Client Side UI Composition", "Database Per Service", "Data Sharding", "Chain of Responsibility", "Command Query Responsibility Segregation", "Polyglot Persistence"],
-      "weight": 0.3
+      "weight": 0.25
     },
     {
       "name": "Technology Diversity",
@@ -25,14 +25,14 @@
       "name": "Agility",
       "description": "​Architecture should support frequent and independent updates by separate teams",
       "guidance": "Make sure the program can be run on different operating systems. Can look for how the program implements: containerization, databases, look for any profiles, test files, versions being used ",
-      "patterns": ["Maintainability", "Proxy", "Bulkhead", "Gateway Routing", "Rolling Deployment", "Canary Deployment", "Metrics Collections and Monitoring", "Log Aggregation", "Consumer-Driven Contracts", "Message Queue", "Cache Aside", "Dead Letter Queue", "Blue-Green Deployment", "Performance Metrics", "Saga"],
+      "patterns": ["Maintainability", "Proxy", "Bulkhead", "Gateway Routing", "Rolling Deployment", "Canary Deployment", "Metrics Collections and Monitoring", "Log Aggregation", "Consumer-Driven Contracts", "Message Queue", "Cache Aside", "Dead Letter Queue", "Blue-Green Deployment", "Performance Metrics", "Saga", "Consumer-Driven Contracts"],
       "weight": 0.1
     },
     {
       "name": "Cost-Effectiveness",
       "description": "Microservices can be deployed in a containerized environment, which allows for efficient resource utilization and reduces infrastructure costs.",
       "guidance": "Identify use of Docker, Kubernetes, or FaaS platforms, and note any resource optimization strategies. 1) Service-less functioning 2) Horizontal scaling 3) Event driven architectures",
-      "patterns": ["Sequential Convoy", "Static Content Hosting", "Stateless Service", "Gateway Routing", "Gateway Aggregation", "Publisher/Subscriber", "Retry", "Message Broker", "Message Queue", "Cache Aside", "Process Manager", "API Gateways", "Aggregator"],
+      "patterns": ["Sequential Convoy", "Scheduler Agent Supervisor", "Static Content Hosting", "Stateless Service", "Gateway Routing", "Gateway Aggregation", "Publisher/Subscriber", "Retry", "Message Broker", "Message Queue", "Cache Aside", "Process Manager", "API Gateways", "Aggregator"],
       "weight": 0.1
     },
     {
@@ -40,7 +40,7 @@
       "description": " Microservices should be shareable across applications or domains",
       "guidance": "identify where repeated functionalities are in the program, and address how they can be condensed into a reusable function.",
       "patterns": ["Business Capability", "Gateway Routing", "Gateway Aggregation", "Publisher/Subscriber", "Correlation IDs", "Claims-Based Authorization", "API Gateway with Security Enforcement", "Sequential Convoy"],
-      "weight": 0.3
+      "weight": 0.25
     }
   ]
 }

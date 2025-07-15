@@ -1,0 +1,1360 @@
+=== Repository Analysis Report ===
+
+Repository ID: digota-digota
+
+--- Dependency Overview ---
+CI/CD & DevOps Tools:
+  - github.com/garyburd/redigo:1.6.0
+  - github.com/icrowley/fake:master
+  - github.com/kelseyhightower/envconfig:1.3.0
+  - github.com/pkg/errors:0.8.0
+  - github.com/rhymond/go-money:0.3.6
+  - github.com/sirupsen/logrus:1.1.1
+  - github.com/stripe/stripe-go:28.3.1
+  - github.com/yaronsumel/go-zookeeper:master
+  - github.com/sirupsen/logrus:1.0.3
+  - github.com/davecgh/go-spew v1.1.1 // indirect
+  - github.com/konsorten/go-windows-terminal-sequences v0.0.0-20180402223658-b729f2633dfe
+  - github.com/pmezard/go-difflib v1.0.0 // indirect
+  - github.com/client9/misspell v0.3.4
+  - github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+  - github.com/golang/lint v0.0.0-20180702182130-06c8688daad7
+  - github.com/kisielk/gotool v1.0.0 // indirect
+Serialization:
+  - github.com/gogo/protobuf:1.1.1
+  - github.com/golang/protobuf:master
+  - github.com/gogo/protobuf:0.5.0
+  - github.com/golang/protobuf v1.2.0
+Web / API:
+  - github.com/grpc-ecosystem/go-grpc-middleware:1.0.0
+  - google.golang.org/grpc:1.15.0
+  - google.golang.org/grpc:1.8.0
+Utility:
+  - github.com/satori/go.uuid:1.2.0
+Testing:
+  - github.com/stretchr/testify:1.2.2
+  - github.com/stretchr/testify:1.1.4
+  - github.com/stretchr/testify v1.2.2
+  - github.com/golang/mock v1.1.1
+Other:
+  - golang.org/x/net:master
+  - gopkg.in/go-playground/validator.v9:9.21.0
+  - gopkg.in/mgo.v2:v2
+  - gopkg.in/urfave/cli.v1:1.20.0
+  - go.uber.org/zap:1.7.1
+  - golang.org/x/oauth2:master
+  - golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
+  - golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33
+  - cloud.google.com/go v0.26.0 // indirect
+  - golang.org/x/lint v0.0.0-20180702182130-06c8688daad7 // indirect
+  - golang.org/x/net v0.0.0-20180826012351-8a410e7b638d
+  - golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
+  - golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
+  - golang.org/x/sys v0.0.0-20180830151530-49385e6e1522
+  - golang.org/x/text v0.3.0 // indirect
+  - golang.org/x/tools v0.0.0-20180828015842-6cd1fcedba52
+  - google.golang.org/appengine v1.1.0 // indirect
+  - google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8
+  - honnef.co/go/tools v0.0.0-20180728063816-88497007e858
+Monitoring:
+  - github.com/opentracing/opentracing-go:1.0.2
+
+
+--- Architecture Analysis ---
+Insufficient repository context found for generating analysis.
+
+--- Current Architecture Diagram ---
+└── directory digota
+    ├── file .gitignore
+    ├── file .travis.yml
+    ├── file CODE_OF_CONDUCT.md
+    ├── file CONTRIBUTING.md
+    ├── file Gopkg.lock
+    ├── file Gopkg.toml
+    ├── file LICENSE
+    ├── file README.md
+    ├── file _config.yml
+    ├── dir _example
+    │   ├── dir auth
+    │   │   ├── file README.md
+    │   │   └── file auth.go
+    │   ├── dir order
+    │   │   ├── file get.go
+    │   │   ├── file list.go
+    │   │   ├── file new.go
+    │   │   ├── file pay.go
+    │   │   └── file return.go
+    │   ├── dir payment
+    │   │   ├── file charge.go
+    │   │   ├── file list.go
+    │   │   └── file refund.go
+    │   ├── dir product
+    │   │   ├── file delete.go
+    │   │   ├── file get.go
+    │   │   ├── file list.go
+    │   │   ├── file new.go
+    │   │   └── file update.go
+    │   └── dir sku
+    │       ├── file get.go
+    │       ├── file new.go
+    │       └── file update.go
+    ├── dir acl
+    │   ├── file acl.go
+    │   └── file acl_test.go
+    ├── dir client
+    │   ├── file client.go
+    │   └── file client_test.go
+    ├── dir config
+    │   └── file config.go
+    ├── dir docker
+    │   ├── dir build
+    │   │   └── file Dockerfile
+    │   └── file docker-compose.yml
+    ├── dir locker
+    │   ├── dir handlers
+    │   │   ├── dir memlock
+    │   │   │   ├── file memlock.go
+    │   │   │   └── file memlock_test.go
+    │   │   ├── dir redis
+    │   │   │   ├── file redis.go
+    │   │   │   └── file redis_test.go
+    │   │   └── dir zookeeper
+    │   │       ├── file zookeeper.go
+    │   │       └── file zookeeper_test.go
+    │   ├── file locker.go
+    │   └── file locker_test.go
+    ├── file main.go
+    ├── dir middleware
+    │   ├── dir authentication
+    │   │   ├── file authentication.go
+    │   │   └── file authentication_test.go
+    │   ├── dir logger
+    │   │   ├── file logger.go
+    │   │   └── file logger_test.go
+    │   └── dir recovery
+    │       ├── file recovery.go
+    │       └── file recovery_test.go
+    ├── dir order
+    │   ├── file order.go
+    │   ├── file order_test.go
+    │   ├── dir orderpb
+    │   │   ├── file order.pb.go
+    │   │   └── file order.proto
+    │   └── dir service
+    │       ├── file service.go
+    │       └── file service_test.go
+    ├── dir payment
+    │   ├── dir errors
+    │   │   ├── file errors.go
+    │   │   └── file errors_test.go
+    │   ├── file payment.go
+    │   ├── file payment_test.go
+    │   ├── dir paymentpb
+    │   │   ├── file payment.pb.go
+    │   │   └── file payment.proto
+    │   └── dir service
+    │       ├── dir providers
+    │       │   ├── dir internalTestOnly
+    │       │   │   ├── file internalTestOnly.go
+    │       │   │   └── file internalTestOnly_test.go
+    │       │   ├── file providers.go
+    │       │   ├── file providers_test.go
+    │       │   └── dir stripe
+    │       │       ├── file stripe.go
+    │       │       └── file stripe_test.go
+    │       ├── file service.go
+    │       └── file service_test.go
+    ├── dir pbgenerator
+    │   ├── file Makefile
+    │   └── file Makefile.bat
+    ├── dir product
+    │   ├── file product.go
+    │   ├── file product_test.go
+    │   ├── dir productpb
+    │   │   ├── file product.pb.go
+    │   │   └── file product.proto
+    │   └── dir service
+    │       ├── file service.go
+    │       └── file service_test.go
+    ├── dir sdk
+    │   ├── file sdk.go
+    │   ├── file sdk_test.go
+    │   └── dir testFiles
+    │       ├── file ca.crt
+    │       ├── file client.com.crt
+    │       └── file client.com.key
+    ├── dir server
+    │   └── file server.go
+    ├── dir sku
+    │   ├── dir service
+    │   │   ├── file service.go
+    │   │   └── file service_test.go
+    │   ├── file sku.go
+    │   ├── file sku_test.go
+    │   └── dir skupb
+    │       ├── file sku.pb.go
+    │       └── file sku.proto
+    ├── dir storage
+    │   ├── dir handlers
+    │   │   └── dir mongo
+    │   │       ├── file mongo.go
+    │   │       └── file mongo_test.go
+    │   ├── dir object
+    │   │   └── file object.go
+    │   ├── file storage.go
+    │   └── file storage_test.go
+    ├── dir util
+    │   ├── file util.go
+    │   └── file util_test.go
+    ├── dir validation
+    │   ├── file validation.go
+    │   └── file validation_test.go
+    └── dir vendor
+        ├── dir github.com
+        │   ├── dir corpix
+        │   │   └── dir uarand
+        │   │       ├── file .gitignore
+        │   │       ├── file .travis.yml
+        │   │       ├── file LICENSE
+        │   │       ├── file Makefile
+        │   │       ├── file README.md
+        │   │       ├── file glide.lock
+        │   │       ├── file glide.yaml
+        │   │       ├── file uarand.go
+        │   │       └── file useragents.go
+        │   ├── dir davecgh
+        │   │   └── dir go-spew
+        │   │       ├── file LICENSE
+        │   │       └── dir spew
+        │   │           ├── file bypass.go
+        │   │           ├── file bypasssafe.go
+        │   │           ├── file common.go
+        │   │           ├── file config.go
+        │   │           ├── file doc.go
+        │   │           ├── file dump.go
+        │   │           ├── file format.go
+        │   │           └── file spew.go
+        │   ├── dir garyburd
+        │   │   └── dir redigo
+        │   │       ├── file LICENSE
+        │   │       ├── dir internal
+        │   │       │   └── file commandinfo.go
+        │   │       └── dir redis
+        │   │           ├── file conn.go
+        │   │           ├── file doc.go
+        │   │           ├── file go16.go
+        │   │           ├── file go17.go
+        │   │           ├── file go18.go
+        │   │           ├── file log.go
+        │   │           ├── file pool.go
+        │   │           ├── file pool17.go
+        │   │           ├── file pubsub.go
+        │   │           ├── file redis.go
+        │   │           ├── file reply.go
+        │   │           ├── file scan.go
+        │   │           └── file script.go
+        │   ├── dir go-playground
+        │   │   ├── dir locales
+        │   │   │   ├── file .gitignore
+        │   │   │   ├── file LICENSE
+        │   │   │   ├── file README.md
+        │   │   │   ├── dir currency
+        │   │   │   │   └── file currency.go
+        │   │   │   ├── file logo.png
+        │   │   │   └── file rules.go
+        │   │   └── dir universal-translator
+        │   │       ├── file .gitignore
+        │   │       ├── file LICENSE
+        │   │       ├── file README.md
+        │   │       ├── file errors.go
+        │   │       ├── file import_export.go
+        │   │       ├── file logo.png
+        │   │       ├── file translator.go
+        │   │       └── file universal_translator.go
+        │   ├── dir gogo
+        │   │   └── dir protobuf
+        │   │       ├── file AUTHORS
+        │   │       ├── file CONTRIBUTORS
+        │   │       ├── file GOLANG_CONTRIBUTORS
+        │   │       ├── file LICENSE
+        │   │       ├── dir gogoproto
+        │   │       │   ├── file Makefile
+        │   │       │   ├── file doc.go
+        │   │       │   ├── file gogo.pb.go
+        │   │       │   ├── file gogo.pb.golden
+        │   │       │   ├── file gogo.proto
+        │   │       │   └── file helper.go
+        │   │       ├── dir proto
+        │   │       │   ├── file Makefile
+        │   │       │   ├── file clone.go
+        │   │       │   ├── file custom_gogo.go
+        │   │       │   ├── file decode.go
+        │   │       │   ├── file discard.go
+        │   │       │   ├── file duration.go
+        │   │       │   ├── file duration_gogo.go
+        │   │       │   ├── file encode.go
+        │   │       │   ├── file encode_gogo.go
+        │   │       │   ├── file equal.go
+        │   │       │   ├── file extensions.go
+        │   │       │   ├── file extensions_gogo.go
+        │   │       │   ├── file lib.go
+        │   │       │   ├── file lib_gogo.go
+        │   │       │   ├── file message_set.go
+        │   │       │   ├── file pointer_reflect.go
+        │   │       │   ├── file pointer_reflect_gogo.go
+        │   │       │   ├── file pointer_unsafe.go
+        │   │       │   ├── file pointer_unsafe_gogo.go
+        │   │       │   ├── file properties.go
+        │   │       │   ├── file properties_gogo.go
+        │   │       │   ├── file skip_gogo.go
+        │   │       │   ├── file table_marshal.go
+        │   │       │   ├── file table_marshal_gogo.go
+        │   │       │   ├── file table_merge.go
+        │   │       │   ├── file table_unmarshal.go
+        │   │       │   ├── file table_unmarshal_gogo.go
+        │   │       │   ├── file text.go
+        │   │       │   ├── file text_gogo.go
+        │   │       │   ├── file text_parser.go
+        │   │       │   ├── file timestamp.go
+        │   │       │   └── file timestamp_gogo.go
+        │   │       └── dir protoc-gen-gogo
+        │   │           └── dir descriptor
+        │   │               ├── file Makefile
+        │   │               ├── file descriptor.go
+        │   │               ├── file descriptor.pb.go
+        │   │               ├── file descriptor_gostring.gen.go
+        │   │               └── file helper.go
+        │   ├── dir golang
+        │   │   └── dir protobuf
+        │   │       ├── file AUTHORS
+        │   │       ├── file CONTRIBUTORS
+        │   │       ├── file LICENSE
+        │   │       ├── dir jsonpb
+        │   │       │   └── file jsonpb.go
+        │   │       ├── dir proto
+        │   │       │   ├── file clone.go
+        │   │       │   ├── file decode.go
+        │   │       │   ├── file deprecated.go
+        │   │       │   ├── file discard.go
+        │   │       │   ├── file encode.go
+        │   │       │   ├── file equal.go
+        │   │       │   ├── file extensions.go
+        │   │       │   ├── file lib.go
+        │   │       │   ├── file message_set.go
+        │   │       │   ├── file pointer_reflect.go
+        │   │       │   ├── file pointer_unsafe.go
+        │   │       │   ├── file properties.go
+        │   │       │   ├── file table_marshal.go
+        │   │       │   ├── file table_merge.go
+        │   │       │   ├── file table_unmarshal.go
+        │   │       │   ├── file text.go
+        │   │       │   └── file text_parser.go
+        │   │       ├── dir protoc-gen-go
+        │   │       │   └── dir descriptor
+        │   │       │       ├── file descriptor.pb.go
+        │   │       │       └── file descriptor.proto
+        │   │       └── dir ptypes
+        │   │           ├── file any.go
+        │   │           ├── dir any
+        │   │           │   ├── file any.pb.go
+        │   │           │   └── file any.proto
+        │   │           ├── file doc.go
+        │   │           ├── file duration.go
+        │   │           ├── dir duration
+        │   │           │   ├── file duration.pb.go
+        │   │           │   └── file duration.proto
+        │   │           ├── dir struct
+        │   │           │   ├── file struct.pb.go
+        │   │           │   └── file struct.proto
+        │   │           ├── file timestamp.go
+        │   │           └── dir timestamp
+        │   │               ├── file timestamp.pb.go
+        │   │               └── file timestamp.proto
+        │   ├── dir grpc-ecosystem
+        │   │   └── dir go-grpc-middleware
+        │   │       ├── file .gitignore
+        │   │       ├── file .travis.yml
+        │   │       ├── file CONTRIBUTING.md
+        │   │       ├── file DOC.md
+        │   │       ├── file Gopkg.lock
+        │   │       ├── file Gopkg.toml
+        │   │       ├── file LICENSE
+        │   │       ├── file README.md
+        │   │       ├── dir auth
+        │   │       │   └── symlink README.md
+        │   │       ├── file chain.go
+        │   │       ├── file doc.go
+        │   │       ├── dir logging
+        │   │       │   ├── file DOC.md
+        │   │       │   ├── file README.md
+        │   │       │   ├── file common.go
+        │   │       │   ├── file doc.go
+        │   │       │   ├── dir logrus
+        │   │       │   │   ├── file DOC.md
+        │   │       │   │   ├── file README.md
+        │   │       │   │   ├── file client_interceptors.go
+        │   │       │   │   ├── file context.go
+        │   │       │   │   ├── dir ctxlogrus
+        │   │       │   │   │   ├── file DOC.md
+        │   │       │   │   │   ├── file README.md
+        │   │       │   │   │   ├── file context.go
+        │   │       │   │   │   ├── file doc.go
+        │   │       │   │   │   └── file noop.go
+        │   │       │   │   ├── file doc.go
+        │   │       │   │   ├── file grpclogger.go
+        │   │       │   │   ├── file options.go
+        │   │       │   │   ├── file payload_interceptors.go
+        │   │       │   │   └── file server_interceptors.go
+        │   │       │   └── dir zap
+        │   │       │       └── symlink README.md
+        │   │       ├── file makefile
+        │   │       ├── dir recovery
+        │   │       │   ├── file DOC.md
+        │   │       │   ├── file README.md
+        │   │       │   ├── file doc.go
+        │   │       │   ├── file interceptors.go
+        │   │       │   └── file options.go
+        │   │       ├── dir retry
+        │   │       │   └── symlink README.md
+        │   │       ├── file slack.png
+        │   │       ├── dir tags
+        │   │       │   ├── file DOC.md
+        │   │       │   ├── file README.md
+        │   │       │   ├── file context.go
+        │   │       │   ├── file doc.go
+        │   │       │   ├── file fieldextractor.go
+        │   │       │   ├── file interceptors.go
+        │   │       │   ├── dir logrus
+        │   │       │   │   └── file context.go
+        │   │       │   └── file options.go
+        │   │       ├── dir testing
+        │   │       │   ├── file interceptor_suite.go
+        │   │       │   ├── file mutex_readerwriter.go
+        │   │       │   ├── file pingservice.go
+        │   │       │   └── dir testproto
+        │   │       │       ├── file Makefile
+        │   │       │       ├── file test.manual_extractfields.pb.go
+        │   │       │       ├── file test.manual_validator.pb.go
+        │   │       │       ├── file test.pb.go
+        │   │       │       └── file test.proto
+        │   │       ├── dir tracing
+        │   │       │   └── dir opentracing
+        │   │       │       └── symlink README.md
+        │   │       ├── dir util
+        │   │       │   └── dir metautils
+        │   │       │       └── symlink README.md
+        │   │       └── file wrappers.go
+        │   ├── dir icrowley
+        │   │   └── dir fake
+        │   │       ├── file .gitignore
+        │   │       ├── file .travis.yml
+        │   │       ├── file LICENSE
+        │   │       ├── file Makefile
+        │   │       ├── file README.md
+        │   │       ├── file addresses.go
+        │   │       ├── file credit_cards.go
+        │   │       ├── file currencies.go
+        │   │       ├── file data.go
+        │   │       ├── file dates.go
+        │   │       ├── file fake.go
+        │   │       ├── file general.go
+        │   │       ├── file geo.go
+        │   │       ├── file glide.lock
+        │   │       ├── file glide.yaml
+        │   │       ├── file internet.go
+        │   │       ├── file jobs.go
+        │   │       ├── file lorem_ipsum.go
+        │   │       ├── file names.go
+        │   │       ├── file personal.go
+        │   │       └── file products.go
+        │   ├── dir kelseyhightower
+        │   │   └── dir envconfig
+        │   │       ├── file .travis.yml
+        │   │       ├── file LICENSE
+        │   │       ├── file MAINTAINERS
+        │   │       ├── file README.md
+        │   │       ├── file doc.go
+        │   │       ├── file env_os.go
+        │   │       ├── file env_syscall.go
+        │   │       ├── file envconfig.go
+        │   │       └── file usage.go
+        │   ├── dir konsorten
+        │   │   └── dir go-windows-terminal-sequences
+        │   │       ├── file LICENSE
+        │   │       ├── file README.md
+        │   │       ├── file go.mod
+        │   │       └── file sequences.go
+        │   ├── dir pkg
+        │   │   └── dir errors
+        │   │       ├── file .gitignore
+        │   │       ├── file .travis.yml
+        │   │       ├── file LICENSE
+        │   │       ├── file README.md
+        │   │       ├── file appveyor.yml
+        │   │       ├── file errors.go
+        │   │       └── file stack.go
+        │   ├── dir pmezard
+        │   │   └── dir go-difflib
+        │   │       ├── file LICENSE
+        │   │       └── dir difflib
+        │   │           └── file difflib.go
+        │   ├── dir rhymond
+        │   │   └── dir go-money
+        │   │       ├── file .gitignore
+        │   │       ├── file .travis.yml
+        │   │       ├── file LICENSE
+        │   │       ├── file README.md
+        │   │       ├── file calculator.go
+        │   │       ├── file currency.go
+        │   │       ├── file formatter.go
+        │   │       ├── file money.go
+        │   │       └── file mutator.go
+        │   ├── dir satori
+        │   │   └── dir go.uuid
+        │   │       ├── file .travis.yml
+        │   │       ├── file LICENSE
+        │   │       ├── file README.md
+        │   │       ├── file codec.go
+        │   │       ├── file generator.go
+        │   │       ├── file sql.go
+        │   │       └── file uuid.go
+        │   ├── dir sirupsen
+        │   │   └── dir logrus
+        │   │       ├── file .gitignore
+        │   │       ├── file .travis.yml
+        │   │       ├── file CHANGELOG.md
+        │   │       ├── file LICENSE
+        │   │       ├── file README.md
+        │   │       ├── file alt_exit.go
+        │   │       ├── file appveyor.yml
+        │   │       ├── file doc.go
+        │   │       ├── file entry.go
+        │   │       ├── file exported.go
+        │   │       ├── file formatter.go
+        │   │       ├── file go.mod
+        │   │       ├── file go.sum
+        │   │       ├── file hooks.go
+        │   │       ├── file json_formatter.go
+        │   │       ├── file logger.go
+        │   │       ├── file logrus.go
+        │   │       ├── file terminal_check_appengine.go
+        │   │       ├── file terminal_check_js.go
+        │   │       ├── file terminal_check_notappengine.go
+        │   │       ├── file terminal_check_windows.go
+        │   │       ├── file terminal_notwindows.go
+        │   │       ├── file terminal_windows.go
+        │   │       ├── file text_formatter.go
+        │   │       └── file writer.go
+        │   ├── dir stretchr
+        │   │   └── dir testify
+        │   │       ├── file LICENSE
+        │   │       ├── dir assert
+        │   │       │   ├── file assertion_format.go
+        │   │       │   ├── file assertion_format.go.tmpl
+        │   │       │   ├── file assertion_forward.go
+        │   │       │   ├── file assertion_forward.go.tmpl
+        │   │       │   ├── file assertions.go
+        │   │       │   ├── file doc.go
+        │   │       │   ├── file errors.go
+        │   │       │   ├── file forward_assertions.go
+        │   │       │   └── file http_assertions.go
+        │   │       ├── dir require
+        │   │       │   ├── file doc.go
+        │   │       │   ├── file forward_requirements.go
+        │   │       │   ├── file require.go
+        │   │       │   ├── file require.go.tmpl
+        │   │       │   ├── file require_forward.go
+        │   │       │   ├── file require_forward.go.tmpl
+        │   │       │   └── file requirements.go
+        │   │       └── dir suite
+        │   │           ├── file doc.go
+        │   │           ├── file interfaces.go
+        │   │           └── file suite.go
+        │   ├── dir stripe
+        │   │   └── dir stripe-go
+        │   │       ├── file .gitignore
+        │   │       ├── file .travis.yml
+        │   │       ├── file CHANGELOG
+        │   │       ├── file CHANGELOG.md
+        │   │       ├── file LICENSE
+        │   │       ├── file Makefile
+        │   │       ├── file README.md
+        │   │       ├── file VERSION
+        │   │       ├── file account.go
+        │   │       ├── file address.go
+        │   │       ├── file applepaydomain.go
+        │   │       ├── file application.go
+        │   │       ├── file balance.go
+        │   │       ├── file bankaccount.go
+        │   │       ├── file bitcoinreceiver.go
+        │   │       ├── file bitcointransaction.go
+        │   │       ├── file card.go
+        │   │       ├── file charge.go
+        │   │       ├── dir charge
+        │   │       │   └── file client.go
+        │   │       ├── file countryspec.go
+        │   │       ├── file coupon.go
+        │   │       ├── file customer.go
+        │   │       ├── file discount.go
+        │   │       ├── file dispute.go
+        │   │       ├── file ephemeralkey.go
+        │   │       ├── file error.go
+        │   │       ├── file event.go
+        │   │       ├── file exchangerate.go
+        │   │       ├── file fee.go
+        │   │       ├── file feerefund.go
+        │   │       ├── file fileupload.go
+        │   │       ├── dir form
+        │   │       │   └── file form.go
+        │   │       ├── file invoice.go
+        │   │       ├── file invoiceitem.go
+        │   │       ├── file iter.go
+        │   │       ├── file loginlink.go
+        │   │       ├── file order.go
+        │   │       ├── file orderitem.go
+        │   │       ├── dir orderitem
+        │   │       │   └── file order_item.go
+        │   │       ├── file orderreturn.go
+        │   │       ├── file params.go
+        │   │       ├── file paymentsource.go
+        │   │       ├── file payout.go
+        │   │       ├── file plan.go
+        │   │       ├── file product.go
+        │   │       ├── file recipient.go
+        │   │       ├── file recipienttransfer.go
+        │   │       ├── file refund.go
+        │   │       ├── dir refund
+        │   │       │   └── file client.go
+        │   │       ├── file reversal.go
+        │   │       ├── file review.go
+        │   │       ├── file sku.go
+        │   │       ├── file source.go
+        │   │       ├── file sourcetransaction.go
+        │   │       ├── file stripe.go
+        │   │       ├── file sub.go
+        │   │       ├── file subitem.go
+        │   │       ├── file threedsecure.go
+        │   │       ├── file token.go
+        │   │       └── file transfer.go
+        │   └── dir yaronsumel
+        │       └── dir go-zookeeper
+        │           ├── file LICENSE
+        │           └── dir zk
+        │               ├── file conn.go
+        │               ├── file constants.go
+        │               ├── file dnshostprovider.go
+        │               ├── file flw.go
+        │               ├── file lock.go
+        │               ├── file server_help.go
+        │               ├── file server_java.go
+        │               ├── file structs.go
+        │               └── file util.go
+        ├── dir golang.org
+        │   └── dir x
+        │       ├── dir crypto
+        │       │   ├── file AUTHORS
+        │       │   ├── file CONTRIBUTORS
+        │       │   ├── file LICENSE
+        │       │   ├── file PATENTS
+        │       │   └── dir ssh
+        │       │       └── dir terminal
+        │       │           ├── file terminal.go
+        │       │           ├── file util.go
+        │       │           ├── file util_bsd.go
+        │       │           ├── file util_linux.go
+        │       │           ├── file util_plan9.go
+        │       │           ├── file util_solaris.go
+        │       │           └── file util_windows.go
+        │       ├── dir net
+        │       │   ├── file AUTHORS
+        │       │   ├── file CONTRIBUTORS
+        │       │   ├── file LICENSE
+        │       │   ├── file PATENTS
+        │       │   ├── dir context
+        │       │   │   ├── file context.go
+        │       │   │   ├── file go17.go
+        │       │   │   ├── file go19.go
+        │       │   │   ├── file pre_go17.go
+        │       │   │   └── file pre_go19.go
+        │       │   ├── dir http
+        │       │   │   └── dir httpguts
+        │       │   │       ├── file guts.go
+        │       │   │       └── file httplex.go
+        │       │   ├── dir http2
+        │       │   │   ├── file .gitignore
+        │       │   │   ├── file Dockerfile
+        │       │   │   ├── file Makefile
+        │       │   │   ├── file README
+        │       │   │   ├── file ciphers.go
+        │       │   │   ├── file client_conn_pool.go
+        │       │   │   ├── file configure_transport.go
+        │       │   │   ├── file databuffer.go
+        │       │   │   ├── file errors.go
+        │       │   │   ├── file flow.go
+        │       │   │   ├── file frame.go
+        │       │   │   ├── file go111.go
+        │       │   │   ├── file go16.go
+        │       │   │   ├── file go17.go
+        │       │   │   ├── file go17_not18.go
+        │       │   │   ├── file go18.go
+        │       │   │   ├── file go19.go
+        │       │   │   ├── file gotrack.go
+        │       │   │   ├── file headermap.go
+        │       │   │   ├── dir hpack
+        │       │   │   │   ├── file encode.go
+        │       │   │   │   ├── file hpack.go
+        │       │   │   │   ├── file huffman.go
+        │       │   │   │   └── file tables.go
+        │       │   │   ├── file http2.go
+        │       │   │   ├── file not_go111.go
+        │       │   │   ├── file not_go16.go
+        │       │   │   ├── file not_go17.go
+        │       │   │   ├── file not_go18.go
+        │       │   │   ├── file not_go19.go
+        │       │   │   ├── file pipe.go
+        │       │   │   ├── file server.go
+        │       │   │   ├── file transport.go
+        │       │   │   ├── file write.go
+        │       │   │   ├── file writesched.go
+        │       │   │   ├── file writesched_priority.go
+        │       │   │   └── file writesched_random.go
+        │       │   ├── dir idna
+        │       │   │   ├── file idna.go
+        │       │   │   ├── file punycode.go
+        │       │   │   ├── file tables.go
+        │       │   │   ├── file trie.go
+        │       │   │   └── file trieval.go
+        │       │   ├── dir internal
+        │       │   │   └── dir timeseries
+        │       │   │       └── file timeseries.go
+        │       │   └── dir trace
+        │       │       ├── file events.go
+        │       │       ├── file histogram.go
+        │       │       ├── file trace.go
+        │       │       ├── file trace_go16.go
+        │       │       └── file trace_go17.go
+        │       ├── dir sys
+        │       │   ├── file AUTHORS
+        │       │   ├── file CONTRIBUTORS
+        │       │   ├── file LICENSE
+        │       │   ├── file PATENTS
+        │       │   ├── dir unix
+        │       │   │   ├── file .gitignore
+        │       │   │   ├── file README.md
+        │       │   │   ├── file affinity_linux.go
+        │       │   │   ├── file aliases.go
+        │       │   │   ├── file asm_darwin_386.s
+        │       │   │   ├── file asm_darwin_amd64.s
+        │       │   │   ├── file asm_darwin_arm.s
+        │       │   │   ├── file asm_darwin_arm64.s
+        │       │   │   ├── file asm_dragonfly_amd64.s
+        │       │   │   ├── file asm_freebsd_386.s
+        │       │   │   ├── file asm_freebsd_amd64.s
+        │       │   │   ├── file asm_freebsd_arm.s
+        │       │   │   ├── file asm_linux_386.s
+        │       │   │   ├── file asm_linux_amd64.s
+        │       │   │   ├── file asm_linux_arm.s
+        │       │   │   ├── file asm_linux_arm64.s
+        │       │   │   ├── file asm_linux_mips64x.s
+        │       │   │   ├── file asm_linux_mipsx.s
+        │       │   │   ├── file asm_linux_ppc64x.s
+        │       │   │   ├── file asm_linux_s390x.s
+        │       │   │   ├── file asm_netbsd_386.s
+        │       │   │   ├── file asm_netbsd_amd64.s
+        │       │   │   ├── file asm_netbsd_arm.s
+        │       │   │   ├── file asm_openbsd_386.s
+        │       │   │   ├── file asm_openbsd_amd64.s
+        │       │   │   ├── file asm_openbsd_arm.s
+        │       │   │   ├── file asm_solaris_amd64.s
+        │       │   │   ├── file bluetooth_linux.go
+        │       │   │   ├── file cap_freebsd.go
+        │       │   │   ├── file constants.go
+        │       │   │   ├── file dev_aix_ppc.go
+        │       │   │   ├── file dev_aix_ppc64.go
+        │       │   │   ├── file dev_darwin.go
+        │       │   │   ├── file dev_dragonfly.go
+        │       │   │   ├── file dev_freebsd.go
+        │       │   │   ├── file dev_linux.go
+        │       │   │   ├── file dev_netbsd.go
+        │       │   │   ├── file dev_openbsd.go
+        │       │   │   ├── file dirent.go
+        │       │   │   ├── file endian_big.go
+        │       │   │   ├── file endian_little.go
+        │       │   │   ├── file env_unix.go
+        │       │   │   ├── file errors_freebsd_386.go
+        │       │   │   ├── file errors_freebsd_amd64.go
+        │       │   │   ├── file errors_freebsd_arm.go
+        │       │   │   ├── file fcntl.go
+        │       │   │   ├── file fcntl_linux_32bit.go
+        │       │   │   ├── file gccgo.go
+        │       │   │   ├── file gccgo_c.c
+        │       │   │   ├── file gccgo_linux_amd64.go
+        │       │   │   ├── file ioctl.go
+        │       │   │   ├── file mkall.sh
+        │       │   │   ├── file mkerrors.sh
+        │       │   │   ├── file mkpost.go
+        │       │   │   ├── file mksyscall.pl
+        │       │   │   ├── file mksyscall_aix.pl
+        │       │   │   ├── file mksyscall_solaris.pl
+        │       │   │   ├── file mksysctl_openbsd.pl
+        │       │   │   ├── file mksysnum_darwin.pl
+        │       │   │   ├── file mksysnum_dragonfly.pl
+        │       │   │   ├── file mksysnum_freebsd.pl
+        │       │   │   ├── file mksysnum_netbsd.pl
+        │       │   │   ├── file mksysnum_openbsd.pl
+        │       │   │   ├── file openbsd_pledge.go
+        │       │   │   ├── file pagesize_unix.go
+        │       │   │   ├── file race.go
+        │       │   │   ├── file race0.go
+        │       │   │   ├── file sockcmsg_linux.go
+        │       │   │   ├── file sockcmsg_unix.go
+        │       │   │   ├── file str.go
+        │       │   │   ├── file syscall.go
+        │       │   │   ├── file syscall_aix.go
+        │       │   │   ├── file syscall_aix_ppc.go
+        │       │   │   ├── file syscall_aix_ppc64.go
+        │       │   │   ├── file syscall_bsd.go
+        │       │   │   ├── file syscall_darwin.go
+        │       │   │   ├── file syscall_darwin_386.go
+        │       │   │   ├── file syscall_darwin_amd64.go
+        │       │   │   ├── file syscall_darwin_arm.go
+        │       │   │   ├── file syscall_darwin_arm64.go
+        │       │   │   ├── file syscall_dragonfly.go
+        │       │   │   ├── file syscall_dragonfly_amd64.go
+        │       │   │   ├── file syscall_freebsd.go
+        │       │   │   ├── file syscall_freebsd_386.go
+        │       │   │   ├── file syscall_freebsd_amd64.go
+        │       │   │   ├── file syscall_freebsd_arm.go
+        │       │   │   ├── file syscall_linux.go
+        │       │   │   ├── file syscall_linux_386.go
+        │       │   │   ├── file syscall_linux_amd64.go
+        │       │   │   ├── file syscall_linux_amd64_gc.go
+        │       │   │   ├── file syscall_linux_arm.go
+        │       │   │   ├── file syscall_linux_arm64.go
+        │       │   │   ├── file syscall_linux_gc.go
+        │       │   │   ├── file syscall_linux_gc_386.go
+        │       │   │   ├── file syscall_linux_gccgo_386.go
+        │       │   │   ├── file syscall_linux_gccgo_arm.go
+        │       │   │   ├── file syscall_linux_mips64x.go
+        │       │   │   ├── file syscall_linux_mipsx.go
+        │       │   │   ├── file syscall_linux_ppc64x.go
+        │       │   │   ├── file syscall_linux_riscv64.go
+        │       │   │   ├── file syscall_linux_s390x.go
+        │       │   │   ├── file syscall_linux_sparc64.go
+        │       │   │   ├── file syscall_netbsd.go
+        │       │   │   ├── file syscall_netbsd_386.go
+        │       │   │   ├── file syscall_netbsd_amd64.go
+        │       │   │   ├── file syscall_netbsd_arm.go
+        │       │   │   ├── file syscall_openbsd.go
+        │       │   │   ├── file syscall_openbsd_386.go
+        │       │   │   ├── file syscall_openbsd_amd64.go
+        │       │   │   ├── file syscall_openbsd_arm.go
+        │       │   │   ├── file syscall_solaris.go
+        │       │   │   ├── file syscall_solaris_amd64.go
+        │       │   │   ├── file syscall_unix.go
+        │       │   │   ├── file syscall_unix_gc.go
+        │       │   │   ├── file timestruct.go
+        │       │   │   ├── file types_aix.go
+        │       │   │   ├── file types_darwin.go
+        │       │   │   ├── file types_dragonfly.go
+        │       │   │   ├── file types_freebsd.go
+        │       │   │   ├── file types_netbsd.go
+        │       │   │   ├── file types_openbsd.go
+        │       │   │   ├── file types_solaris.go
+        │       │   │   ├── file xattr_bsd.go
+        │       │   │   ├── file zerrors_aix_ppc.go
+        │       │   │   ├── file zerrors_aix_ppc64.go
+        │       │   │   ├── file zerrors_darwin_386.go
+        │       │   │   ├── file zerrors_darwin_amd64.go
+        │       │   │   ├── file zerrors_darwin_arm.go
+        │       │   │   ├── file zerrors_darwin_arm64.go
+        │       │   │   ├── file zerrors_dragonfly_amd64.go
+        │       │   │   ├── file zerrors_freebsd_386.go
+        │       │   │   ├── file zerrors_freebsd_amd64.go
+        │       │   │   ├── file zerrors_freebsd_arm.go
+        │       │   │   ├── file zerrors_linux_386.go
+        │       │   │   ├── file zerrors_linux_amd64.go
+        │       │   │   ├── file zerrors_linux_arm.go
+        │       │   │   ├── file zerrors_linux_arm64.go
+        │       │   │   ├── file zerrors_linux_mips.go
+        │       │   │   ├── file zerrors_linux_mips64.go
+        │       │   │   ├── file zerrors_linux_mips64le.go
+        │       │   │   ├── file zerrors_linux_mipsle.go
+        │       │   │   ├── file zerrors_linux_ppc64.go
+        │       │   │   ├── file zerrors_linux_ppc64le.go
+        │       │   │   ├── file zerrors_linux_riscv64.go
+        │       │   │   ├── file zerrors_linux_s390x.go
+        │       │   │   ├── file zerrors_linux_sparc64.go
+        │       │   │   ├── file zerrors_netbsd_386.go
+        │       │   │   ├── file zerrors_netbsd_amd64.go
+        │       │   │   ├── file zerrors_netbsd_arm.go
+        │       │   │   ├── file zerrors_openbsd_386.go
+        │       │   │   ├── file zerrors_openbsd_amd64.go
+        │       │   │   ├── file zerrors_openbsd_arm.go
+        │       │   │   ├── file zerrors_solaris_amd64.go
+        │       │   │   ├── file zptrace386_linux.go
+        │       │   │   ├── file zptracearm_linux.go
+        │       │   │   ├── file zptracemips_linux.go
+        │       │   │   ├── file zptracemipsle_linux.go
+        │       │   │   ├── file zsyscall_aix_ppc.go
+        │       │   │   ├── file zsyscall_aix_ppc64.go
+        │       │   │   ├── file zsyscall_darwin_386.go
+        │       │   │   ├── file zsyscall_darwin_amd64.go
+        │       │   │   ├── file zsyscall_darwin_arm.go
+        │       │   │   ├── file zsyscall_darwin_arm64.go
+        │       │   │   ├── file zsyscall_dragonfly_amd64.go
+        │       │   │   ├── file zsyscall_freebsd_386.go
+        │       │   │   ├── file zsyscall_freebsd_amd64.go
+        │       │   │   ├── file zsyscall_freebsd_arm.go
+        │       │   │   ├── file zsyscall_linux_386.go
+        │       │   │   ├── file zsyscall_linux_amd64.go
+        │       │   │   ├── file zsyscall_linux_arm.go
+        │       │   │   ├── file zsyscall_linux_arm64.go
+        │       │   │   ├── file zsyscall_linux_mips.go
+        │       │   │   ├── file zsyscall_linux_mips64.go
+        │       │   │   ├── file zsyscall_linux_mips64le.go
+        │       │   │   ├── file zsyscall_linux_mipsle.go
+        │       │   │   ├── file zsyscall_linux_ppc64.go
+        │       │   │   ├── file zsyscall_linux_ppc64le.go
+        │       │   │   ├── file zsyscall_linux_riscv64.go
+        │       │   │   ├── file zsyscall_linux_s390x.go
+        │       │   │   ├── file zsyscall_linux_sparc64.go
+        │       │   │   ├── file zsyscall_netbsd_386.go
+        │       │   │   ├── file zsyscall_netbsd_amd64.go
+        │       │   │   ├── file zsyscall_netbsd_arm.go
+        │       │   │   ├── file zsyscall_openbsd_386.go
+        │       │   │   ├── file zsyscall_openbsd_amd64.go
+        │       │   │   ├── file zsyscall_openbsd_arm.go
+        │       │   │   ├── file zsyscall_solaris_amd64.go
+        │       │   │   ├── file zsysctl_openbsd_386.go
+        │       │   │   ├── file zsysctl_openbsd_amd64.go
+        │       │   │   ├── file zsysctl_openbsd_arm.go
+        │       │   │   ├── file zsysnum_darwin_386.go
+        │       │   │   ├── file zsysnum_darwin_amd64.go
+        │       │   │   ├── file zsysnum_darwin_arm.go
+        │       │   │   ├── file zsysnum_darwin_arm64.go
+        │       │   │   ├── file zsysnum_dragonfly_amd64.go
+        │       │   │   ├── file zsysnum_freebsd_386.go
+        │       │   │   ├── file zsysnum_freebsd_amd64.go
+        │       │   │   ├── file zsysnum_freebsd_arm.go
+        │       │   │   ├── file zsysnum_linux_386.go
+        │       │   │   ├── file zsysnum_linux_amd64.go
+        │       │   │   ├── file zsysnum_linux_arm.go
+        │       │   │   ├── file zsysnum_linux_arm64.go
+        │       │   │   ├── file zsysnum_linux_mips.go
+        │       │   │   ├── file zsysnum_linux_mips64.go
+        │       │   │   ├── file zsysnum_linux_mips64le.go
+        │       │   │   ├── file zsysnum_linux_mipsle.go
+        │       │   │   ├── file zsysnum_linux_ppc64.go
+        │       │   │   ├── file zsysnum_linux_ppc64le.go
+        │       │   │   ├── file zsysnum_linux_riscv64.go
+        │       │   │   ├── file zsysnum_linux_s390x.go
+        │       │   │   ├── file zsysnum_linux_sparc64.go
+        │       │   │   ├── file zsysnum_netbsd_386.go
+        │       │   │   ├── file zsysnum_netbsd_amd64.go
+        │       │   │   ├── file zsysnum_netbsd_arm.go
+        │       │   │   ├── file zsysnum_openbsd_386.go
+        │       │   │   ├── file zsysnum_openbsd_amd64.go
+        │       │   │   ├── file zsysnum_openbsd_arm.go
+        │       │   │   ├── file ztypes_aix_ppc.go
+        │       │   │   ├── file ztypes_aix_ppc64.go
+        │       │   │   ├── file ztypes_darwin_386.go
+        │       │   │   ├── file ztypes_darwin_amd64.go
+        │       │   │   ├── file ztypes_darwin_arm.go
+        │       │   │   ├── file ztypes_darwin_arm64.go
+        │       │   │   ├── file ztypes_dragonfly_amd64.go
+        │       │   │   ├── file ztypes_freebsd_386.go
+        │       │   │   ├── file ztypes_freebsd_amd64.go
+        │       │   │   ├── file ztypes_freebsd_arm.go
+        │       │   │   ├── file ztypes_linux_386.go
+        │       │   │   ├── file ztypes_linux_amd64.go
+        │       │   │   ├── file ztypes_linux_arm.go
+        │       │   │   ├── file ztypes_linux_arm64.go
+        │       │   │   ├── file ztypes_linux_mips.go
+        │       │   │   ├── file ztypes_linux_mips64.go
+        │       │   │   ├── file ztypes_linux_mips64le.go
+        │       │   │   ├── file ztypes_linux_mipsle.go
+        │       │   │   ├── file ztypes_linux_ppc64.go
+        │       │   │   ├── file ztypes_linux_ppc64le.go
+        │       │   │   ├── file ztypes_linux_riscv64.go
+        │       │   │   ├── file ztypes_linux_s390x.go
+        │       │   │   ├── file ztypes_linux_sparc64.go
+        │       │   │   ├── file ztypes_netbsd_386.go
+        │       │   │   ├── file ztypes_netbsd_amd64.go
+        │       │   │   ├── file ztypes_netbsd_arm.go
+        │       │   │   ├── file ztypes_openbsd_386.go
+        │       │   │   ├── file ztypes_openbsd_amd64.go
+        │       │   │   ├── file ztypes_openbsd_arm.go
+        │       │   │   └── file ztypes_solaris_amd64.go
+        │       │   └── dir windows
+        │       │       ├── file aliases.go
+        │       │       ├── file asm_windows_386.s
+        │       │       ├── file asm_windows_amd64.s
+        │       │       ├── file asm_windows_arm.s
+        │       │       ├── file dll_windows.go
+        │       │       ├── file env_windows.go
+        │       │       ├── file eventlog.go
+        │       │       ├── file exec_windows.go
+        │       │       ├── file memory_windows.go
+        │       │       ├── file mksyscall.go
+        │       │       ├── file race.go
+        │       │       ├── file race0.go
+        │       │       ├── file security_windows.go
+        │       │       ├── file service.go
+        │       │       ├── file str.go
+        │       │       ├── file syscall.go
+        │       │       ├── file syscall_windows.go
+        │       │       ├── file types_windows.go
+        │       │       ├── file types_windows_386.go
+        │       │       ├── file types_windows_amd64.go
+        │       │       ├── file types_windows_arm.go
+        │       │       └── file zsyscall_windows.go
+        │       └── dir text
+        │           ├── file AUTHORS
+        │           ├── file CONTRIBUTORS
+        │           ├── file LICENSE
+        │           ├── file PATENTS
+        │           ├── dir collate
+        │           │   ├── dir build
+        │           │   │   ├── file builder.go
+        │           │   │   ├── file colelem.go
+        │           │   │   ├── file contract.go
+        │           │   │   ├── file order.go
+        │           │   │   ├── file table.go
+        │           │   │   └── file trie.go
+        │           │   ├── file collate.go
+        │           │   ├── file index.go
+        │           │   ├── file maketables.go
+        │           │   ├── file option.go
+        │           │   ├── file sort.go
+        │           │   └── file tables.go
+        │           ├── dir internal
+        │           │   ├── dir colltab
+        │           │   │   ├── file collelem.go
+        │           │   │   ├── file colltab.go
+        │           │   │   ├── file contract.go
+        │           │   │   ├── file iter.go
+        │           │   │   ├── file numeric.go
+        │           │   │   ├── file table.go
+        │           │   │   ├── file trie.go
+        │           │   │   └── file weighter.go
+        │           │   ├── dir gen
+        │           │   │   ├── file code.go
+        │           │   │   └── file gen.go
+        │           │   ├── dir tag
+        │           │   │   └── file tag.go
+        │           │   ├── dir triegen
+        │           │   │   ├── file compact.go
+        │           │   │   ├── file print.go
+        │           │   │   └── file triegen.go
+        │           │   └── dir ucd
+        │           │       └── file ucd.go
+        │           ├── dir language
+        │           │   ├── file Makefile
+        │           │   ├── file common.go
+        │           │   ├── file coverage.go
+        │           │   ├── file doc.go
+        │           │   ├── file gen.go
+        │           │   ├── file gen_common.go
+        │           │   ├── file gen_index.go
+        │           │   ├── file go1_1.go
+        │           │   ├── file go1_2.go
+        │           │   ├── file index.go
+        │           │   ├── file language.go
+        │           │   ├── file lookup.go
+        │           │   ├── file match.go
+        │           │   ├── file parse.go
+        │           │   ├── file tables.go
+        │           │   └── file tags.go
+        │           ├── dir secure
+        │           │   └── dir bidirule
+        │           │       ├── file bidirule.go
+        │           │       ├── file bidirule10.0.0.go
+        │           │       └── file bidirule9.0.0.go
+        │           ├── dir transform
+        │           │   └── file transform.go
+        │           └── dir unicode
+        │               ├── dir bidi
+        │               │   ├── file bidi.go
+        │               │   ├── file bracket.go
+        │               │   ├── file core.go
+        │               │   ├── file gen.go
+        │               │   ├── file gen_ranges.go
+        │               │   ├── file gen_trieval.go
+        │               │   ├── file prop.go
+        │               │   ├── file tables10.0.0.go
+        │               │   ├── file tables9.0.0.go
+        │               │   └── file trieval.go
+        │               ├── dir cldr
+        │               │   ├── file base.go
+        │               │   ├── file cldr.go
+        │               │   ├── file collate.go
+        │               │   ├── file decode.go
+        │               │   ├── file makexml.go
+        │               │   ├── file resolve.go
+        │               │   ├── file slice.go
+        │               │   └── file xml.go
+        │               ├── dir norm
+        │               │   ├── file composition.go
+        │               │   ├── file forminfo.go
+        │               │   ├── file input.go
+        │               │   ├── file iter.go
+        │               │   ├── file maketables.go
+        │               │   ├── file normalize.go
+        │               │   ├── file readwriter.go
+        │               │   ├── file tables10.0.0.go
+        │               │   ├── file tables9.0.0.go
+        │               │   ├── file transform.go
+        │               │   ├── file trie.go
+        │               │   └── file triegen.go
+        │               └── dir rangetable
+        │                   ├── file gen.go
+        │                   ├── file merge.go
+        │                   ├── file rangetable.go
+        │                   ├── file tables10.0.0.go
+        │                   └── file tables9.0.0.go
+        ├── dir google.golang.org
+        │   ├── dir genproto
+        │   │   ├── file LICENSE
+        │   │   └── dir googleapis
+        │   │       └── dir rpc
+        │   │           └── dir status
+        │   │               └── file status.pb.go
+        │   └── dir grpc
+        │       ├── file .travis.yml
+        │       ├── file AUTHORS
+        │       ├── file CONTRIBUTING.md
+        │       ├── file LICENSE
+        │       ├── file Makefile
+        │       ├── file README.md
+        │       ├── file backoff.go
+        │       ├── file balancer.go
+        │       ├── dir balancer
+        │       │   ├── file balancer.go
+        │       │   ├── dir base
+        │       │   │   ├── file balancer.go
+        │       │   │   └── file base.go
+        │       │   └── dir roundrobin
+        │       │       └── file roundrobin.go
+        │       ├── file balancer_conn_wrappers.go
+        │       ├── file balancer_v1_wrapper.go
+        │       ├── file call.go
+        │       ├── file clientconn.go
+        │       ├── file codec.go
+        │       ├── file codegen.sh
+        │       ├── dir codes
+        │       │   ├── file code_string.go
+        │       │   └── file codes.go
+        │       ├── dir connectivity
+        │       │   └── file connectivity.go
+        │       ├── dir credentials
+        │       │   ├── file credentials.go
+        │       │   ├── file go16.go
+        │       │   ├── file go17.go
+        │       │   ├── file go18.go
+        │       │   └── file go19.go
+        │       ├── file dialoptions.go
+        │       ├── file doc.go
+        │       ├── dir encoding
+        │       │   ├── file encoding.go
+        │       │   └── dir proto
+        │       │       └── file proto.go
+        │       ├── file go.mod
+        │       ├── file go.sum
+        │       ├── file go16.go
+        │       ├── file go17.go
+        │       ├── dir grpclog
+        │       │   ├── file grpclog.go
+        │       │   ├── file logger.go
+        │       │   └── file loggerv2.go
+        │       ├── file install_gae.sh
+        │       ├── file interceptor.go
+        │       ├── dir internal
+        │       │   ├── dir backoff
+        │       │   │   └── file backoff.go
+        │       │   ├── dir channelz
+        │       │   │   ├── file funcs.go
+        │       │   │   ├── file types.go
+        │       │   │   ├── file types_linux.go
+        │       │   │   ├── file types_nonlinux.go
+        │       │   │   ├── file util_linux_go19.go
+        │       │   │   └── file util_nonlinux_pre_go19.go
+        │       │   ├── dir envconfig
+        │       │   │   └── file envconfig.go
+        │       │   ├── dir grpcrand
+        │       │   │   └── file grpcrand.go
+        │       │   ├── file internal.go
+        │       │   └── dir transport
+        │       │       ├── file bdp_estimator.go
+        │       │       ├── file controlbuf.go
+        │       │       ├── file defaults.go
+        │       │       ├── file flowcontrol.go
+        │       │       ├── file go16.go
+        │       │       ├── file go17.go
+        │       │       ├── file handler_server.go
+        │       │       ├── file http2_client.go
+        │       │       ├── file http2_server.go
+        │       │       ├── file http_util.go
+        │       │       ├── file log.go
+        │       │       └── file transport.go
+        │       ├── dir keepalive
+        │       │   └── file keepalive.go
+        │       ├── dir metadata
+        │       │   └── file metadata.go
+        │       ├── dir naming
+        │       │   ├── file dns_resolver.go
+        │       │   ├── file go17.go
+        │       │   ├── file go18.go
+        │       │   └── file naming.go
+        │       ├── dir peer
+        │       │   └── file peer.go
+        │       ├── file picker_wrapper.go
+        │       ├── file pickfirst.go
+        │       ├── file proxy.go
+        │       ├── dir reflection
+        │       │   ├── file README.md
+        │       │   ├── dir grpc_reflection_v1alpha
+        │       │   │   ├── file reflection.pb.go
+        │       │   │   └── file reflection.proto
+        │       │   └── file serverreflection.go
+        │       ├── dir resolver
+        │       │   ├── dir dns
+        │       │   │   ├── file dns_resolver.go
+        │       │   │   ├── file go17.go
+        │       │   │   └── file go18.go
+        │       │   ├── dir passthrough
+        │       │   │   └── file passthrough.go
+        │       │   └── file resolver.go
+        │       ├── file resolver_conn_wrapper.go
+        │       ├── file rpc_util.go
+        │       ├── file server.go
+        │       ├── file service_config.go
+        │       ├── dir stats
+        │       │   ├── file handlers.go
+        │       │   └── file stats.go
+        │       ├── dir status
+        │       │   ├── file go16.go
+        │       │   ├── file go17.go
+        │       │   └── file status.go
+        │       ├── file stream.go
+        │       ├── dir tap
+        │       │   └── file tap.go
+        │       ├── file trace.go
+        │       ├── file version.go
+        │       └── file vet.sh
+        └── dir gopkg.in
+            ├── dir go-playground
+            │   └── dir validator.v9
+            │       ├── file .gitignore
+            │       ├── file LICENSE
+            │       ├── file Makefile
+            │       ├── file README.md
+            │       ├── file baked_in.go
+            │       ├── file cache.go
+            │       ├── file doc.go
+            │       ├── file errors.go
+            │       ├── file field_level.go
+            │       ├── file logo.png
+            │       ├── file regexes.go
+            │       ├── file struct_level.go
+            │       ├── file translations.go
+            │       ├── file util.go
+            │       ├── file validator.go
+            │       └── file validator_instance.go
+            ├── dir mgo.v2
+            │   ├── file .travis.yml
+            │   ├── file LICENSE
+            │   ├── file Makefile
+            │   ├── file README.md
+            │   ├── file auth.go
+            │   ├── dir bson
+            │   │   ├── file LICENSE
+            │   │   ├── file bson.go
+            │   │   ├── file decimal.go
+            │   │   ├── file decode.go
+            │   │   ├── file encode.go
+            │   │   └── file json.go
+            │   ├── file bulk.go
+            │   ├── file cluster.go
+            │   ├── file doc.go
+            │   ├── file gridfs.go
+            │   ├── dir internal
+            │   │   ├── dir json
+            │   │   │   ├── file LICENSE
+            │   │   │   ├── file decode.go
+            │   │   │   ├── file encode.go
+            │   │   │   ├── file extension.go
+            │   │   │   ├── file fold.go
+            │   │   │   ├── file indent.go
+            │   │   │   ├── file scanner.go
+            │   │   │   ├── file stream.go
+            │   │   │   └── file tags.go
+            │   │   ├── dir sasl
+            │   │   │   ├── file sasl.c
+            │   │   │   ├── file sasl.go
+            │   │   │   ├── file sasl_windows.c
+            │   │   │   ├── file sasl_windows.go
+            │   │   │   ├── file sasl_windows.h
+            │   │   │   ├── file sspi_windows.c
+            │   │   │   └── file sspi_windows.h
+            │   │   └── dir scram
+            │   │       └── file scram.go
+            │   ├── file log.go
+            │   ├── file queue.go
+            │   ├── file raceoff.go
+            │   ├── file raceon.go
+            │   ├── file saslimpl.go
+            │   ├── file saslstub.go
+            │   ├── file server.go
+            │   ├── file session.go
+            │   ├── file socket.go
+            │   └── file stats.go
+            └── dir urfave
+                └── dir cli.v1
+                    ├── file .flake8
+                    ├── file .gitignore
+                    ├── file .travis.yml
+                    ├── file CHANGELOG.md
+                    ├── file LICENSE
+                    ├── file README.md
+                    ├── file app.go
+                    ├── file appveyor.yml
+                    ├── file category.go
+                    ├── file cli.go
+                    ├── file command.go
+                    ├── file context.go
+                    ├── file errors.go
+                    ├── file flag.go
+                    ├── file flag_generated.go
+                    ├── file funcs.go
+                    ├── file generate-flag-types
+                    ├── file help.go
+                    └── file runtests
+
+
+--- Identified Service Boundaries ---
+Error during service boundary
+
+--- Recommended Improvements ---
+
+
+--- Refactored Architecture Plan ---
+ To refactor this codebase effectively, we'll focus on several key areas:
+
+1. Modularize the code by organizing it into logical packages/modules based on their functionalities. For instance, group all the GRPC-related files under a 'grpc' package, validator-related files under a 'validator' package, etc.
+
+2. Improve naming conventions for better readability and consistency throughout the codebase. Ensure that variable names, function names, and package names are descriptive and follow established coding standards.
+
+3. Utilize interfaces to promote loose coupling between different components and facilitate easier testing and maintenance.
+
+4. Employ error handling best practices, such as using appropriate error types and using the `error` interface instead of raw strings for error messages.
+
+5. Make use of Go modules to manage dependencies and versioning. This will help ensure a consistent development environment and make it easier to update or swap out dependencies.
+
+6. Implement testing strategies for each package/module, including unit tests, integration tests, and end-to-end tests where applicable.
+
+7. Document the codebase appropriately with clear comments describing the purpose of functions, variables, and packages. Include any relevant usage examples or caveats as necessary.
+
+8. Consider using linting tools like `golangci-lint` or `go vet` to enforce coding standards and identify potential issues early in the development process.
+
+By following these best practices, we can create a more maintainable, testable, and efficient codebase that will serve as a strong foundation for future development efforts.

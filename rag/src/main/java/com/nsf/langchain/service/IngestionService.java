@@ -46,15 +46,20 @@ public class IngestionService {
     @Value("${app.allowed-extensions}")
     private String allowedExtensions;
 
-    @PostConstruct
-    public void initIngestion() {
+   
+
+@PostConstruct
+public void initIngestion() {
     String repoId = "base";
     Path scoringPath = Paths.get("doc", "msa-scoring.json");
     Path patternsPath = Paths.get("doc", "msa-patterns.json");
+    Path antiPatternsPath = Paths.get("doc", "msa-anti-patterns.json");
 
     ingestMsaScoringJson(scoringPath, repoId);
     ingestMsaPatternsJson(patternsPath, repoId);
+    ingestMsaAntiPatternsJson(antiPatternsPath, repoId);
 }
+
 
 
 
@@ -299,6 +304,66 @@ test.forEach(doc -> log.info("Found: {}", doc.getMetadata()));
             log.error("Failed to ingest MSA patterns JSON '{}': {}", path, e.getMessage());
         }
     }
+
+    public void ingestMsaAntiPatternsJson(Path path, String repoId) {
+        log.info("Starting MSA anti-patterns JSON ingestion for file: {}", path);
+    
+        ObjectMapper objectMapper = new ObjectMapper();
+        List<Document> documents = new ArrayList<>();
+    
+        try {
+            if (!Files.exists(path)) {
+                log.error("File not found: {}", path);
+                return;
+            }
+    
+            JsonNode rootNode = objectMapper.readTree(path.toFile());
+            JsonNode antiArray = rootNode.get("anti-patterns");
+    
+            if (antiArray != null && antiArray.isArray()) {
+                for (JsonNode node : antiArray) {
+                    String name = node.path("name").asText();
+                    String description = node.path("description").asText();
+                    String severity = node.path("severity").asText();
+    
+                    StringBuilder impacts = new StringBuilder();
+                    JsonNode impactNode = node.path("impact");
+                    if (impactNode.isArray()) {
+                        for (JsonNode impact : impactNode) {
+                            impacts.append(impact.asText()).append(", ");
+                        }
+                    }
+    
+                    String text = String.format("""
+                            Anti-pattern: %s
+                            Description: %s
+                            Severity: %s
+                            Impact: %s
+                            """, name, description, severity, impacts.toString());
+    
+                    Document doc = Document.builder()
+                            .text(text)
+                            .metadata("file", path.getFileName().toString())
+                            .metadata("repo", repoId)
+                            .metadata("antipattern", name)
+                            .build();
+    
+                    documents.add(doc);
+                }
+            }
+    
+            if (!documents.isEmpty()) {
+                vectorStore.add(documents);
+                log.info("Ingested {} anti-patterns from '{}'", documents.size(), path.getFileName());
+            } else {
+                log.warn("No anti-patterns found in '{}'", path);
+            }
+    
+        } catch (IOException e) {
+            log.error("Failed to ingest MSA anti-patterns JSON '{}': {}", path, e.getMessage());
+        }
+    }
+    
     
 
     

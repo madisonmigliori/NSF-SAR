@@ -59,7 +59,6 @@ public ResponseEntity<Report> analyze(@RequestBody Repo gitUrl) {
                 "Error extracting dependencies.",
                 "Error running analysis.",
                 "Error displaying architecture.",
-                "Error providing recommendations.",
                 "Error identifying service boundary.",
                 "Error displaying refactored architecture"
             )

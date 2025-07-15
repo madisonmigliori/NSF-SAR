@@ -1,0 +1,572 @@
+=== Repository Analysis Report ===
+
+Repository ID: spring-petclinic-spring-petclinic-microservices
+
+--- Dependency Overview ---
+Error during dependency extraction
+
+--- Architecture Analysis ---
+ The analysis of the given repository shows that it follows several architectural patterns, including Domain-Driven Design (DDD), Gateway Routing, Anti-Corruption Layer, Retry, Message Broker, API Gateway, Backends for Frontends, Aggregator, Client-Side UI Composition, Chain of Responsibility, Event Sourcing, Database Per Service, Health Check, Distributed Tracing, Performance Metrics, Circuit Breaker, and Load Balancer.
+
+However, there are some architectural anti-patterns and issues to address:
+
+1. Dependency Issues: None detected.
+2. Warnings and Missing Configurations: None detected.
+
+The evaluation criteria for the architecture are as follows:
+
+* Scalability (weight: 0.25) - 7.5/10, with DDD, Message Broker, Service Discovery, Database Per Service, Chain of Responsibility contributing positively to scalability.
+* Technology Diversity (weight: 0.1) - 5.0/10, with REST API, Backends for Frontends providing some technology diversity.
+* Resilience (weight: 0.2) - 10.0/10, with Circuit Breaker, Retry, Load Balancer, Anti-corruption Layer, Distributed Tracing, Retry, Message Queue, Timeout, Fallback, and Health Check contributing to resilience.
+* Agility (weight: 0.1) - 3.0/10, with Gateway Routing and Message Queue positively affecting agility.
+* Cost-Effectiveness (weight: 0.1) - 5.0/10, with Static Content Hosting, Gateway Routing, Retry, Message Broker, Message Queue, Aggregator contributing to cost-effectiveness.
+* Reusability (weight: 0.25) - 7.5/10, with Gateway Routing positively affecting reusability.
+
+Overall Score: 63% or 0.63 out of 10. The architecture has strengths in resilience and cost-effectiveness but could improve in scalability, technology diversity, agility, and reusability.
+
+--- Debug Info ---
+Matched Patterns:
+- Gateway Routing
+- Performance Metrics
+- Load Balancer
+- Service Discovery
+- Anti-Corruption Layer
+- Message Queue
+- Domain-Driven Design
+- Timeout
+- Aggregator
+- Circuit Breaker
+- Backends for Frontends
+- Metrics Collection and Monitoring
+- REST API
+- Client-Side UI Composition
+- Event Sourcing
+- Chain of Responsibility
+- Health Check
+- Message Broker
+- Fallback
+- Retry
+- Static Content Hosting
+- API Gateway
+- Distributed Tracing
+- Database Per Service
+Matched Anti-Patterns:
+Scoring Results:
+- Reusability: 0.75
+- Scalability: 0.75
+- Agility: 0.30
+- Technology Diversity: 0.50
+- Cost-Effectiveness: 0.50
+- Resilience: 1.00
+
+
+--- Current Architecture Diagram ---
+└── directory spring-petclinic-microservices
+    ├── dir .devcontainer
+    │   └── file devcontainer.json
+    ├── file .editorconfig
+    ├── file .gitattributes
+    ├── dir .github
+    │   └── dir workflows
+    │       └── file maven-build.yml
+    ├── file .gitignore
+    ├── dir .mvn
+    │   └── dir wrapper
+    │       ├── file maven-wrapper.jar
+    │       └── file maven-wrapper.properties
+    ├── file LICENSE
+    ├── file README.md
+    ├── file docker-compose.yml
+    ├── dir docker
+    │   ├── file Dockerfile
+    │   ├── dir grafana
+    │   │   ├── file Dockerfile
+    │   │   ├── dir dashboards
+    │   │   │   └── file grafana-petclinic-dashboard.json
+    │   │   ├── file grafana.ini
+    │   │   └── dir provisioning
+    │   │       ├── dir dashboards
+    │   │       │   └── file all.yml
+    │   │       └── dir datasources
+    │   │           └── file all.yml
+    │   └── dir prometheus
+    │       ├── file Dockerfile
+    │       └── file prometheus.yml
+    ├── dir docs
+    │   ├── file application-screenshot.png
+    │   ├── file grafana-custom-metrics-dashboard.png
+    │   ├── file microservices-architecture-diagram.jpg
+    │   └── file spring-ai.png
+    ├── file mvnw
+    ├── file mvnw.cmd
+    ├── file pom.xml
+    ├── dir scripts
+    │   ├── dir chaos
+    │   │   ├── file README.md
+    │   │   ├── file attacks_disable.json
+    │   │   ├── file attacks_enable_exception.json
+    │   │   ├── file attacks_enable_killapplication.json
+    │   │   ├── file attacks_enable_latency.json
+    │   │   ├── file attacks_enable_memory.json
+    │   │   ├── file call_chaos.sh
+    │   │   ├── file watcher_disable.json
+    │   │   ├── file watcher_enable_component.json
+    │   │   ├── file watcher_enable_controller.json
+    │   │   ├── file watcher_enable_repository.json
+    │   │   ├── file watcher_enable_restcontroller.json
+    │   │   └── file watcher_enable_service.json
+    │   ├── file pushImages.sh
+    │   ├── file run_all.sh
+    │   └── file tagImages.sh
+    ├── dir spring-petclinic-admin-server
+    │   ├── file pom.xml
+    │   └── dir src
+    │       └── dir main
+    │           ├── dir java
+    │           │   └── dir org
+    │           │       └── dir springframework
+    │           │           └── dir samples
+    │           │               └── dir petclinic
+    │           │                   └── dir admin
+    │           │                       └── file SpringBootAdminApplication.java
+    │           └── dir resources
+    │               ├── file application.yml
+    │               └── file logback-spring.xml
+    ├── dir spring-petclinic-api-gateway
+    │   ├── file .gitignore
+    │   ├── file pom.xml
+    │   └── dir src
+    │       ├── dir main
+    │       │   ├── dir java
+    │       │   │   └── dir org
+    │       │   │       └── dir springframework
+    │       │   │           └── dir samples
+    │       │   │               └── dir petclinic
+    │       │   │                   └── dir api
+    │       │   │                       ├── file ApiGatewayApplication.java
+    │       │   │                       ├── dir application
+    │       │   │                       │   ├── file CustomersServiceClient.java
+    │       │   │                       │   └── file VisitsServiceClient.java
+    │       │   │                       ├── dir boundary
+    │       │   │                       │   └── dir web
+    │       │   │                       │       ├── file ApiGatewayController.java
+    │       │   │                       │       └── file FallbackController.java
+    │       │   │                       └── dir dto
+    │       │   │                           ├── file OwnerDetails.java
+    │       │   │                           ├── file PetDetails.java
+    │       │   │                           ├── file PetType.java
+    │       │   │                           ├── file VisitDetails.java
+    │       │   │                           └── file Visits.java
+    │       │   └── dir resources
+    │       │       ├── file application.yml
+    │       │       ├── file logback-spring.xml
+    │       │       ├── dir messages
+    │       │       │   ├── file messages.properties
+    │       │       │   ├── file messages_de.properties
+    │       │       │   └── file messages_en.properties
+    │       │       └── dir static
+    │       │           ├── dir css
+    │       │           │   ├── file header.css
+    │       │           │   ├── file petclinic.css
+    │       │           │   ├── file responsive.css
+    │       │           │   └── file typography.css
+    │       │           ├── dir fonts
+    │       │           │   ├── file montserrat-webfont.eot
+    │       │           │   ├── file montserrat-webfont.svg
+    │       │           │   ├── file montserrat-webfont.ttf
+    │       │           │   ├── file montserrat-webfont.woff
+    │       │           │   ├── file varela_round-webfont.eot
+    │       │           │   ├── file varela_round-webfont.svg
+    │       │           │   ├── file varela_round-webfont.ttf
+    │       │           │   └── file varela_round-webfont.woff
+    │       │           ├── dir images
+    │       │           │   ├── file favicon.png
+    │       │           │   ├── file pets.png
+    │       │           │   ├── file platform-bg.png
+    │       │           │   ├── file spring-logo-dataflow-mobile.png
+    │       │           │   ├── file spring-logo-dataflow.png
+    │       │           │   └── file spring-pivotal-logo.png
+    │       │           ├── file index.html
+    │       │           ├── dir scripts
+    │       │           │   ├── file app.js
+    │       │           │   ├── dir fragments
+    │       │           │   │   ├── file footer.html
+    │       │           │   │   ├── file nav.html
+    │       │           │   │   └── file welcome.html
+    │       │           │   ├── dir genai
+    │       │           │   │   └── file chat.js
+    │       │           │   ├── dir infrastructure
+    │       │           │   │   ├── file httpErrorHandlingInterceptor.js
+    │       │           │   │   └── file infrastructure.js
+    │       │           │   ├── dir owner-details
+    │       │           │   │   ├── file owner-details.component.js
+    │       │           │   │   ├── file owner-details.controller.js
+    │       │           │   │   ├── file owner-details.js
+    │       │           │   │   └── file owner-details.template.html
+    │       │           │   ├── dir owner-form
+    │       │           │   │   ├── file owner-form.component.js
+    │       │           │   │   ├── file owner-form.controller.js
+    │       │           │   │   ├── file owner-form.js
+    │       │           │   │   └── file owner-form.template.html
+    │       │           │   ├── dir owner-list
+    │       │           │   │   ├── file owner-list.component.js
+    │       │           │   │   ├── file owner-list.controller.js
+    │       │           │   │   ├── file owner-list.js
+    │       │           │   │   └── file owner-list.template.html
+    │       │           │   ├── dir pet-form
+    │       │           │   │   ├── file pet-form.component.js
+    │       │           │   │   ├── file pet-form.controller.js
+    │       │           │   │   ├── file pet-form.js
+    │       │           │   │   └── file pet-form.template.html
+    │       │           │   ├── dir vet-list
+    │       │           │   │   ├── file vet-list.component.js
+    │       │           │   │   ├── file vet-list.controller.js
+    │       │           │   │   ├── file vet-list.js
+    │       │           │   │   └── file vet-list.template.html
+    │       │           │   └── dir visits
+    │       │           │       ├── file visits.component.js
+    │       │           │       ├── file visits.controller.js
+    │       │           │       ├── file visits.js
+    │       │           │       └── file visits.template.html
+    │       │           └── dir scss
+    │       │               ├── file header.scss
+    │       │               ├── file petclinic.scss
+    │       │               ├── file responsive.scss
+    │       │               └── file typography.scss
+    │       └── dir test
+    │           ├── dir java
+    │           │   └── dir org
+    │           │       └── dir springframework
+    │           │           └── dir samples
+    │           │               └── dir petclinic
+    │           │                   └── dir api
+    │           │                       ├── file ApiGatewayApplicationTests.java
+    │           │                       ├── dir application
+    │           │                       │   └── file VisitsServiceClientIntegrationTest.java
+    │           │                       └── dir boundary
+    │           │                           └── dir web
+    │           │                               ├── file ApiGatewayControllerTest.java
+    │           │                               └── file CircuitBreakerConfiguration.java
+    │           ├── dir jmeter
+    │           │   └── file petclinic_test_plan.jmx
+    │           └── dir resources
+    │               └── file application-test.yml
+    ├── dir spring-petclinic-config-server
+    │   ├── file pom.xml
+    │   └── dir src
+    │       ├── dir main
+    │       │   ├── dir java
+    │       │   │   └── dir org
+    │       │   │       └── dir springframework
+    │       │   │           └── dir samples
+    │       │   │               └── dir petclinic
+    │       │   │                   └── dir config
+    │       │   │                       └── file ConfigServerApplication.java
+    │       │   └── dir resources
+    │       │       ├── file application.yml
+    │       │       └── dir static
+    │       │           └── file index.html
+    │       └── dir test
+    │           ├── dir java
+    │           │   └── dir org
+    │           │       └── dir springframework
+    │           │           └── dir samples
+    │           │               └── dir petclinic
+    │           │                   └── dir config
+    │           │                       └── file PetclinicConfigServerApplicationTests.java
+    │           └── dir resources
+    │               └── file application.yml
+    ├── dir spring-petclinic-customers-service
+    │   ├── file pom.xml
+    │   └── dir src
+    │       ├── dir main
+    │       │   ├── dir java
+    │       │   │   └── dir org
+    │       │   │       └── dir springframework
+    │       │   │           └── dir samples
+    │       │   │               └── dir petclinic
+    │       │   │                   └── dir customers
+    │       │   │                       ├── file CustomersServiceApplication.java
+    │       │   │                       ├── dir config
+    │       │   │                       │   └── file MetricConfig.java
+    │       │   │                       ├── dir model
+    │       │   │                       │   ├── file Owner.java
+    │       │   │                       │   ├── file OwnerRepository.java
+    │       │   │                       │   ├── file Pet.java
+    │       │   │                       │   ├── file PetRepository.java
+    │       │   │                       │   └── file PetType.java
+    │       │   │                       └── dir web
+    │       │   │                           ├── file OwnerRequest.java
+    │       │   │                           ├── file OwnerResource.java
+    │       │   │                           ├── file PetDetails.java
+    │       │   │                           ├── file PetRequest.java
+    │       │   │                           ├── file PetResource.java
+    │       │   │                           ├── file ResourceNotFoundException.java
+    │       │   │                           └── dir mapper
+    │       │   │                               ├── file Mapper.java
+    │       │   │                               └── file OwnerEntityMapper.java
+    │       │   └── dir resources
+    │       │       ├── file application.yml
+    │       │       ├── dir db
+    │       │       │   ├── dir hsqldb
+    │       │       │   │   ├── file data.sql
+    │       │       │   │   └── file schema.sql
+    │       │       │   └── dir mysql
+    │       │       │       ├── file data.sql
+    │       │       │       └── file schema.sql
+    │       │       └── file logback-spring.xml
+    │       └── dir test
+    │           ├── dir java
+    │           │   └── dir org
+    │           │       └── dir springframework
+    │           │           └── dir samples
+    │           │               └── dir petclinic
+    │           │                   └── dir customers
+    │           │                       └── dir web
+    │           │                           └── file PetResourceTest.java
+    │           └── dir resources
+    │               └── file application-test.yml
+    ├── dir spring-petclinic-discovery-server
+    │   ├── file pom.xml
+    │   └── dir src
+    │       ├── dir main
+    │       │   ├── dir java
+    │       │   │   └── dir org
+    │       │   │       └── dir springframework
+    │       │   │           └── dir samples
+    │       │   │               └── dir petclinic
+    │       │   │                   └── dir discovery
+    │       │   │                       └── file DiscoveryServerApplication.java
+    │       │   └── dir resources
+    │       │       └── file application.yml
+    │       └── dir test
+    │           └── dir java
+    │               └── dir org
+    │                   └── dir springframework
+    │                       └── dir samples
+    │                           └── dir petclinic
+    │                               └── dir discovery
+    │                                   └── file DiscoveryServerApplicationTests.java
+    ├── dir spring-petclinic-genai-service
+    │   ├── file .gitignore
+    │   ├── file pom.xml
+    │   └── dir src
+    │       └── dir main
+    │           ├── dir java
+    │           │   └── dir org
+    │           │       └── dir springframework
+    │           │           └── dir samples
+    │           │               └── dir petclinic
+    │           │                   └── dir genai
+    │           │                       ├── file AIBeanConfiguration.java
+    │           │                       ├── file AIDataProvider.java
+    │           │                       ├── file AIFunctionConfiguration.java
+    │           │                       ├── file GenAIServiceApplication.java
+    │           │                       ├── file PetclinicChatClient.java
+    │           │                       ├── file VectorStoreController.java
+    │           │                       └── dir dto
+    │           │                           ├── file OwnerDetails.java
+    │           │                           ├── file PetDetails.java
+    │           │                           ├── file PetRequest.java
+    │           │                           ├── file PetType.java
+    │           │                           ├── file Specialty.java
+    │           │                           ├── file Vet.java
+    │           │                           └── file VisitDetails.java
+    │           └── dir resources
+    │               ├── file application.yml
+    │               ├── file logback-spring.xml
+    │               └── file vectorstore.json
+    ├── dir spring-petclinic-vets-service
+    │   ├── file .gitignore
+    │   ├── file pom.xml
+    │   └── dir src
+    │       ├── dir main
+    │       │   ├── dir java
+    │       │   │   └── dir org
+    │       │   │       └── dir springframework
+    │       │   │           └── dir samples
+    │       │   │               └── dir petclinic
+    │       │   │                   └── dir vets
+    │       │   │                       ├── file VetsServiceApplication.java
+    │       │   │                       ├── dir model
+    │       │   │                       │   ├── file Specialty.java
+    │       │   │                       │   ├── file Vet.java
+    │       │   │                       │   └── file VetRepository.java
+    │       │   │                       ├── dir system
+    │       │   │                       │   ├── file CacheConfig.java
+    │       │   │                       │   └── file VetsProperties.java
+    │       │   │                       └── dir web
+    │       │   │                           └── file VetResource.java
+    │       │   └── dir resources
+    │       │       ├── file application.yml
+    │       │       ├── dir db
+    │       │       │   ├── dir hsqldb
+    │       │       │   │   ├── file data.sql
+    │       │       │   │   └── file schema.sql
+    │       │       │   └── dir mysql
+    │       │       │       ├── file data.sql
+    │       │       │       └── file schema.sql
+    │       │       └── file logback-spring.xml
+    │       └── dir test
+    │           ├── dir java
+    │           │   └── dir org
+    │           │       └── dir springframework
+    │           │           └── dir samples
+    │           │               └── dir petclinic
+    │           │                   └── dir vets
+    │           │                       └── dir web
+    │           │                           └── file VetResourceTest.java
+    │           └── dir resources
+    │               └── file application-test.yml
+    └── dir spring-petclinic-visits-service
+        ├── file pom.xml
+        └── dir src
+            ├── dir main
+            │   ├── dir java
+            │   │   └── dir org
+            │   │       └── dir springframework
+            │   │           └── dir samples
+            │   │               └── dir petclinic
+            │   │                   └── dir visits
+            │   │                       ├── file VisitsServiceApplication.java
+            │   │                       ├── dir config
+            │   │                       │   └── file MetricConfig.java
+            │   │                       ├── dir model
+            │   │                       │   ├── file Visit.java
+            │   │                       │   └── file VisitRepository.java
+            │   │                       └── dir web
+            │   │                           └── file VisitResource.java
+            │   └── dir resources
+            │       ├── file application.yml
+            │       ├── dir db
+            │       │   ├── dir hsqldb
+            │       │   │   ├── file data.sql
+            │       │   │   └── file schema.sql
+            │       │   └── dir mysql
+            │       │       ├── file data.sql
+            │       │       └── file schema.sql
+            │       └── file logback-spring.xml
+            └── dir test
+                ├── dir java
+                │   └── dir org
+                │       └── dir springframework
+                │           └── dir samples
+                │               └── dir petclinic
+                │                   └── dir visits
+                │                       └── dir web
+                │                           └── file VisitResourceTest.java
+                └── dir resources
+                    └── file application-test.yml
+
+
+--- Identified Service Boundaries ---
++----------------------------+      +------------------+      +------------------+      +----------------------------+      +------------------+      +----------------------------+      +---------------------------+      +------------------+      +----------------------------+
+| genai                      |      | admin            |      | visits           |      | web                        |      | discovery        |      | vets                       |      | api                       |      | customers        |      | config                     |
+| API:                       |      +------------------+      +------------------+      | API:                       |      +------------------+      | Shared:                    |      | Shared:                   |      +------------------+      | Shared:                    |
+|   - PetclinicChatClient    |                                                          |   - VetResource            |                                |   - VetsServiceApplication |      |   - ApiGatewayApplication |                                |   - PetclinicConfigServ... |
+|   - VectorStoreController  |                                                          |   - PetResource            |                                +----------------------------+      +---------------------------+                                |   - ConfigServerApplica... |
+| Business:                  |                                                          |   - OwnerResource          |                                               |                                  |                                              |   - MetricConfig           |
+|   - AIDataProvider         |                                                          |   - FallbackController     |                                               |                                  |                                              +----------------------------+
+| Entity:                    |                                                          |   - ApiGatewayController   |                                               |                                  |                                                             |
+|   - PetclinicChatClient    |                                                          |   - VisitResource          |                                               |                                  |                                                             |
+|   - AIBeanConfiguration    |                                                          | Entity:                    |                                               |                                  |                                                             |
+| Presentation:              |                                                          |   - OwnerResource          |                                               |                                  |                                                             |
+|   - VectorStoreController  |                                                          |   - FallbackController     |                                               |                                  |                                                             |
+| Shared:                    |                                                          | Shared:                    |                                               |                                  |                                                             |
+|   - AIFunctionConfigura... |                                                          |   - VetResourceTest        |                                               |                                  |                                                             |
+|   - AIDataProvider         |                                                          |   - CircuitBreakerConfi... |                                               |                                  |                                                             |
+|   - PetclinicChatClient    |                                                          |   - PetResource            |                                               |                                  |                                                             |
+|   - AIBeanConfiguration    |                                                          |   - ResourceNotFoundExc... |                                               |                                  |                                                             |
+|   - VectorStoreController  |                                                          |   - PetResourceTest        |                                               |                                  |                                                             |
++----------------------------+                                                          |   - ApiGatewayControlle... |                                               |                                  |                                                             |
+               |                                                                        |   - OwnerResource          |                                               |                                  |                                                             |
+               |                                                                        |   - VisitResourceTest      |                                               |                                  |                                                             |
+               |                                                                        |   - VisitResource          |                                               |                                  |                                                             |
+               |                                                                        +----------------------------+                                               |                                  |                                                             |
+               |                                                                                       |                                                             |                                  |                                                             |
+               |                                                                                       |                                                             |                                  |                                                             |
+               |                                                                                       v                    web --> application web --> mapper       |                    vets --> syste|                                                             |
++--------------|--------+      +--------------------+      +----------------------------+              |                                                             |                                  |                                                             |
+| mapper       |        |      | system             |      | application                |              |                                                             |                                  |                                                             |
+| Entity:      |        |      | Shared:            |      | Presentation:              |              |                                                             |                                  |                                                             |
+|   - OwnerEnti|yMapper |      |   - CacheConfig    |      |   - CustomersServiceClient |              |                                                             |                                  |                                                             |
+| Presentation:|        |      |   - VetsProperties |      |   - VisitsServiceClient    |              |                                                             |                                  |                                                             |
+|   - OwnerEnti|yMapper |      +--------------------+      | Shared:                    |              |                                                             |                                  |                                                             |
++--------------|--------+                 |                |   - VisitsServiceClient... |              |                                                             |                                  |                                                             |
+            |  |                          |                +----------------------------+              |                                                             |                                  |                                                             |
+            |  |                          |                               |                            |                                                             |                                  |                                                             |
+            |  |                          |                               |                            |                                                             |                                  |                                                             |
+            v  v                    genai v-> model            system --> vodel                applicatvon --> model        web --> model                            v                    vets --> modelvmapper --> model    api --> model                            v                    config --> model
++---------------------+
+| model               |
+| Entity:             |
+|   - Owner           |
+|   - PetType         |
+|   - Pet             |
+|   - Vet             |
+|   - Specialty       |
+|   - Visit           |
+| Repository:         |
+|   - VetRepository   |
+|   - PetRepository   |
+|   - OwnerRepository |
+|   - VisitRepository |
++---------------------+
+
+
+
+
+
+--- Refactored Architecture Plan ---
+ Here is a simplified ASCII tree diagram representing the refactored codebase:
+
+```
+API Gateway
+│
+├── Gateways (Gateway Routing)
+│   ├── User API Gateway
+│   └── Pet API Gateway
+│
+├── Event Bus
+│   ├── Event Producers
+│   │   ├── User Registration Producer
+│   │   └── Pet Adoption Producer
+│   └── Event Consumers
+│       ├── User Update Consumer
+│       └── Pet Info Consumer
+│
+├── Microservices
+│   ├── User Service (DDD, Anti-Corruption Layer, Circuit Breaker)
+│   │   ├── Core Domain
+│   │   │   ├── User Aggregate Root
+│   │   │   ├── User Event Handlers
+│   │   │   └── User Repository
+│   │   ├── Application Domain
+│   │   │   ├── User Service Interface
+│   │   │   ├── User Application Service
+│   │   │   └── User Infrastructure
+│   │   │       ├── Database Connection
+│   │   │       └── Exception Handling
+│   │   └── API (REST, Health Check)
+│   ├── Pet Service (DDD, Anti-Corruption Layer, Circuit Breaker)
+│   │   ├── Core Domain
+│   │   │   ├── Pet Aggregate Root
+│   │   │   ├── Pet Event Handlers
+│   │   │   └── Pet Repository
+│   │   ├── Application Domain
+│   │   │   ├── Pet Service Interface
+│   │   │   ├── Pet Application Service
+│   │   │   └── Pet Infrastructure
+│   │   │       ├── Database Connection
+│   │   │       └── Exception Handling
+│   │   └── API (REST, Health Check)
+│   └── ... (add more services as needed)
+│
+└── Supporting Services
+    ├── Message Broker (Message Queue, Retry)
+    ├── Load Balancer
+    ├── Database Per Service
+    └── Monitoring and Metrics (Performance Metrics, Distributed Tracing)
+```
+
+This refactoring aims to provide a more structured and organized codebase by grouping related services logically, separating event producers from consumers, optimizing modularity, resilience, and clarity. The API Gateway acts as an entry point for all requests, while the Event Bus manages communication between microservices using events. Microservices are further broken down into Core Domain, Application Domain, and Infrastructure layers for better organization and testability. Supporting services, such as Message Broker, Load Balancer, Database Per Service, and Monitoring and Metrics, remain separate to maintain their functionalities.

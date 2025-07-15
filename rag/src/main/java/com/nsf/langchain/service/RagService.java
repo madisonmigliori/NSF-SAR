@@ -10,39 +10,43 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nsf.langchain.git.BinaryTreeNode;
 import com.nsf.langchain.git.GitHubApi;
-import com.nsf.langchain.model.Repo;
 import com.nsf.langchain.model.Report;
 import com.nsf.langchain.model.Scoring;
-import com.nsf.langchain.model.BoundaryResult;
-import com.nsf.langchain.model.Pattern;
+import com.nsf.langchain.model.AntiPattern;
+import com.nsf.langchain.model.MSAPattern;
 import com.nsf.langchain.utils.ArchitectureUtils;
 import com.nsf.langchain.utils.GitUtils;
 import com.nsf.langchain.utils.JsonUtils;
 import com.nsf.langchain.utils.RepoUtils;
 import com.nsf.langchain.utils.ServiceBoundaryUtils;
-import com.nsf.langchain.utils.ServiceBoundaryUtils.ArchitectureMap;
-import com.nsf.langchain.utils.ServiceBoundaryUtils.ServiceBoundary;
 
 import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.boot.autoconfigure.info.ProjectInfoProperties.Git;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.document.Document;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays; 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.function.Function;
+
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,240 +74,432 @@ public class RagService {
         this.gitHubApi = gitHubApi;
         this.jsonUtils = jsonUtils;
     }
-    
-
     public Report getReport(String url) throws JsonProcessingException {
         String repoId = RepoUtils.extractRepoId(url);
         String[] parts = url.split("/");
         String user = parts[parts.length - 2];
         String repo = parts[parts.length - 1].replace(".git", "");
     
-        String dependencies = "";
-        String analysis = "";
-        String archDiagram = "";
-        String recommendations = "";
-        String architectureRec = "";
-        String boundary = "";
-        String boundary2 = "";
+        LocalDateTime timestamp = LocalDateTime.now();
+        String timeStr = timestamp.toString();
+        String timeCsv = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").format(timestamp);
     
         long startTime = System.currentTimeMillis();
-        long totalTime = 0;
-        BinaryTreeNode ingestRepo = null;
+        long ingestionTime = 0;
+        long[] dependencyTime = new long[1];
+        long[] boundaryTime = new long[1];
+        long[] archDiagramTime = new long[1];
+        long[] analysisTime = new long[1];
+        long[] architectureRecTime = new long[1];
+    
+        BinaryTreeNode ingestRepo;
+        Map<String, String> codeFiles;
+        BinaryTreeNode rootTree;
+     
     
         try {
-            log.info("Starting ingestion for: {}", url);
             long stepStart = System.currentTimeMillis();
+            log.info("Ingestion Started");
             ingestRepo = gitHubApi.inspectRepo(url);
-            log.info("Ingestion complete in {}ms", System.currentTimeMillis() - stepStart);
-            totalTime += (System.currentTimeMillis() - stepStart);
-
+            codeFiles = gitHubApi.extractCode(ingestRepo);
+            rootTree = gitUtils.gitHubTree(url);
+            
+            ingestionTime = System.currentTimeMillis() - stepStart;
+            log.info("Ingestion complete in {}ms", ingestionTime);
         } catch (Exception e) {
             log.error("Ingestion failed", e);
+            return failedReport(repoId);
         }
-    
-        Map<String, String> codeFiles = gitHubApi.extractCode(ingestRepo);
+        List<BinaryTreeNode> fileNodes = gitHubApi.collectRelevantFiles(ingestRepo);
+        String dependencies = safeStep("Dependency Extraction", () -> architecture.getDependencyFile(fileNodes), t -> dependencyTime[0] = t);
+        String boundary = safeStep("Service Boundary", () -> generateBoundaryFromCodeFiles(codeFiles), t -> boundaryTime[0] = t);
+        String archDiagram = safeStep("Architecture Diagram", () -> architecture.displayArchitecture(rootTree), t -> archDiagramTime[0] = t);
+        List<AntiPattern> antiPatterns = jsonUtils.loadAntiPatternsJson(Paths.get("doc/msa-anti-patterns.json"));
+        List<MSAPattern> patterns = jsonUtils.loadPatternsJson(Paths.get("doc/msa-patterns.json"));
 
-        List<ServiceBoundaryUtils.ServiceBoundary> artifacts = serviceBoundary.extractFiles(codeFiles);
-        ServiceBoundaryUtils.ArchitectureMap archMap = serviceBoundary.fallback(artifacts);
+       
+        Set<String> codeMatchedPatterns = ingestRepo.patternCounts.keySet();
+        Set<String> contextMatchedPatterns = new HashSet<>(matchPatterns(ingestRepo, patterns, dependencies, archDiagram, boundary));
+        
+        Set<String> allMatchedPatterns = new HashSet<>(codeMatchedPatterns);
+        allMatchedPatterns.addAll(contextMatchedPatterns);
+        List<String> matchedPatterns = new ArrayList<>(allMatchedPatterns);
+        
+        Set<String> codeMatchedAntiPatterns = ingestRepo.antiPatternCounts.keySet();
+        Set<String> contextMatchedAntiPatterns = new HashSet<>(matchAntiPatterns(ingestRepo, antiPatterns, dependencies, archDiagram, boundary));
+        
+        Set<String> allMatchedAntiPatterns = new HashSet<>(codeMatchedAntiPatterns);
+        allMatchedAntiPatterns.addAll(contextMatchedAntiPatterns);
+        List<String> matchedAntiPatterns = new ArrayList<>(allMatchedAntiPatterns);
+        Map<String, Double> scoringResults = ingestRepo.scoringResults;
+        
+        List<String> allWarnings = ingestRepo.allWarnings;
 
-    
-    
+        String warningsSummary = allWarnings.isEmpty()
+        ? "No warnings or missing configurations detected."
+        : allWarnings.stream().distinct().collect(Collectors.joining("\n- ", "- ", ""));
 
-        String diagram = serviceBoundary.generateDiagramWithMultiArrowsBetweenBoxes(archMap);
-        System.out.println("Here is the digram\n" + diagram);
-
-        try {
-            long stepStart = System.currentTimeMillis();
-            dependencies  = architecture.getDependency(user, repo);
-            log.info("Dependency extraction completed in {}ms", System.currentTimeMillis() - stepStart);
-            totalTime += (System.currentTimeMillis() - stepStart);
-        } catch (Exception e) {
-            dependencies = "Error extracting dependencies.";
-            log.error("Dependency extraction failed", e);
-        }
-        try {
-            long stepStart = System.currentTimeMillis();
-            // boundary = generateBoundary(repoId, ingestRepo);
-            BoundaryResult boundaryResult = inferBoundary(ingestRepo);
-
-            boundary = "\n\n---\n\n" + boundaryResult.context();
-            boundary2 = generateBoundary2(ingestRepo);
-            System.out.println("\"\\n" + //
-                                "\\n" + //
-                                "---\\n" + //
-                                "\\n" + //
-                                "\" Anaylze and Print");
-            serviceBoundary.analyzeAndPrint(codeFiles);
-            
+        List<ServiceBoundaryUtils.ServiceBoundary> services = serviceBoundary.extractFiles(codeFiles);
+        Map<String, Set<String>> dependencyGraph = serviceBoundary.buildDependencyGraph(services);
+        List<String> issues = ServiceBoundaryUtils.analyzeDependencies(dependencyGraph);
+        issues.forEach(issue -> log.warn("Dependency issue detected: {}", issue));
 
 
-            log.info("Service boundary generated in {}ms", System.currentTimeMillis() - stepStart);
-            totalTime += (System.currentTimeMillis() - stepStart);
-        } catch (Exception e) {
-            boundary2 = "Error identifying service boundary.";
-            log.error("Service boundary extraction failed", e);
-        }
-    
-        try {
-            long stepStart = System.currentTimeMillis();
-            BinaryTreeNode root = gitUtils.gitHubTree(url);
-            archDiagram = architecture.displayArchitecture(root);
-
-            System.out.println(root);
-            System.out.println(archDiagram);
-            log.info("Architecture diagram built in {}ms", System.currentTimeMillis() - stepStart);
-            totalTime += (System.currentTimeMillis() - stepStart);
-        } catch (Exception e) {
-            archDiagram = "Error displaying architecture.";
-            log.error("Architecture diagram generation failed", e);
-        }
-    
-        try {
-            long stepStart = System.currentTimeMillis();
-            analysis = generateAnalysis(repoId, dependencies, boundary, archDiagram);
-            log.info("Analysis complete in {}ms", System.currentTimeMillis() - stepStart);
-            totalTime += (System.currentTimeMillis() - stepStart);
-        } catch (Exception e) {
-            analysis = "Error running analysis.";
-            log.error("Analysis generation failed", e);
-        }
-    
-        try {
-            long stepStart = System.currentTimeMillis();
-            architectureRec = generateArchitecture(repoId,dependencies, boundary, archDiagram, analysis);
-            log.info("Refactored architecture generated in {}ms", System.currentTimeMillis() - stepStart);
-            totalTime += (System.currentTimeMillis() - stepStart);
-        } catch (Exception e) {
-            architectureRec = "Error generating refactored architecture.";
-            log.error("Refactored architecture generation failed", e);
-        }
-    
-    
-      
-
-    
-        Report finalReport = new Report(repoId, dependencies, analysis, archDiagram, boundary2, recommendations, architectureRec);
-
-        try {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String fileName = repoId + "-" + timestamp + ".txt";
-        Path outputPath = Path.of("reports", fileName);
-        Files.createDirectories(outputPath.getParent());
-        Files.writeString(outputPath, finalReport.toString(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-
-        log.info("Report saved to {}", outputPath.toAbsolutePath());
-
-        } catch (IOException e) {
-        log.error("Failed to save report", e);
-        }
-
-
-        log.info("\n{}", finalReport.toString());
-        log.info("Total report generation time: {}ms and in {}min", System.currentTimeMillis() - startTime, (totalTime / 6000 ));
-
-        return finalReport;
-    }
-    
-
-    public String generateAnalysis(String repoId, String dependencies, String boundary, String archDiagram) {
-        String filter = "repo == '" + repoId + "'";
-        List<Scoring> criteria = jsonUtils.loadScoringJson(Paths.get("doc/msa-scoring.json"));
-        List<Pattern> allPatterns = jsonUtils.loadPatternsJson(Paths.get("doc/msa-patterns.json"));
-    
-        List<Document> docs = vectorStore.similaritySearch(
-            SearchRequest.builder()
-                .query("Summarize architecture patterns and anti-patterns for microservices")
-                .filterExpression(filter)
-                .topK(15)
-                .build()
+    String analysis = safeStep("Architecture Analysis",
+        () -> generateAnalysis(repoId, dependencies, boundary, archDiagram, matchedPatterns, matchedAntiPatterns, warningsSummary, issues, scoringResults),
+    t -> analysisTime[0] = t
         );
     
-        if (docs.isEmpty()) return "Insufficient repository context found for generating analysis.";
+        String architectureRec = safeStep("Architecture Recommendation", 
+    () -> generateArchitecture(repoId, dependencies, boundary, archDiagram, analysis, scoringResults), 
+    t -> architectureRecTime[0] = t);
+
+
+
     
-        String repoContext = docs.stream().map(Document::getText).limit(10).collect(Collectors.joining("\n---\n"));
+        Report finalReport = new Report(repoId, dependencies, analysis, archDiagram, boundary, architectureRec);
     
-        String lowerDeps = dependencies.toLowerCase();
-        String lowerArch = archDiagram.toLowerCase();
-        String lowerBoundary = boundary.toLowerCase();
+        writeTimingCsv(repoId, ingestionTime, dependencyTime[0], boundaryTime[0], archDiagramTime[0], analysisTime[0], architectureRecTime[0], startTime);
+        saveReportToFile(finalReport, repoId, timeCsv);
     
-        List<Pattern> relevantPatterns = allPatterns.stream()
-            .filter(p -> Stream.of(lowerDeps, lowerArch, lowerBoundary).anyMatch(text -> text.contains(p.getName().toLowerCase())))
-            .collect(Collectors.toList());
+        long totalTime = System.currentTimeMillis() - startTime;
+        log.info("Total report generation time: {}ms ({} min)", totalTime, totalTime / 60000);
+        log.info("\n{}", finalReport.toString());
+        
+
+
+        
     
-        String shortPatternSummaries = relevantPatterns.stream()
-            .map(p -> "- " + p.getName() + ": " + p.getDescription())
-            .collect(Collectors.joining("\n"));
-    
-        String scoringContext = criteria.stream().map(c -> {
-            StringBuilder sb = new StringBuilder();
-            if (c.getPatterns() != null && !c.getPatterns().isEmpty()) {
-                sb.append("Patterns:\n");
-                for (String pattern : c.getPatterns()) {
-                    allPatterns.stream()
-                        .filter(p -> p.getName().equalsIgnoreCase(pattern))
-                        .findFirst()
-                        .ifPresent(p -> sb.append("- ").append(p.getName()).append(": ").append(p.getDescription()).append("\n"));
-                }
-            }
-            return String.format("""
-                Criterion: %s
-                Description: %s
-                Guidance: %s
-                %s
-                Weight: %s
-                """, c.getName(), c.getDescription(), c.getGuidance(), sb, c.getWeight());
-        }).collect(Collectors.joining("\n---\n"));
-    
-        String contextString = """
-            Repository architecture context:
-            %s
-    
-            Dependencies:
-            %s
-    
-            System Boundaries:
-            %s
-    
-            Architecture Diagram:
-            %s
-    
-            Relevant Architectural Patterns:
-            %s
-    
-            Evaluation Criteria:
-            %s
-            """.formatted(repoContext, dependencies, boundary, archDiagram, shortPatternSummaries, scoringContext);
-    
-        Prompt prompt = new Prompt(List.of(
-            new SystemMessage("""
-                You are a senior microservices architect.
-    
-                Your task is to analyze a repository's architecture using the provided context.
-    
-                1. **Detect** which architectural patterns are evident.
-                2. Explain each detected pattern.
-                3. Summarize strengths and weaknesses.
-                4. Evaluate criteria:
-                   - Score 0–10
-                   - List strengths, weaknesses, and improvements
-    
-                End with:
-                ## Overall Score: <0-10>
-                Summary: ...
-            """),
-            new UserMessage(contextString)
-        ));
-    
-        long start = System.currentTimeMillis();
-        ChatResponse response = chatModel.call(prompt);
-        log.info("Architecture analysis completed in {}ms", System.currentTimeMillis() - start);
-    
-        return response.getResult().getOutput().getText();
+        return finalReport;
+
+
     }
     
+
+    private String generateBoundaryFromCodeFiles(Map<String, String> codeFiles) throws JsonProcessingException {
+        List<ServiceBoundaryUtils.ServiceBoundary> artifacts = serviceBoundary.extractFiles(codeFiles);
+        ServiceBoundaryUtils.ArchitectureMap archMap = serviceBoundary.fallback(artifacts);
+        archMap.serviceCalls = serviceBoundary.inferServiceRelations(archMap);
+        archMap.printLayers();
+        return serviceBoundary.generateVerticalDiagramWithLevelsAndArrows2(archMap);
+    }
+
+
+
+    private void saveReportToFile(Report report, String repoId, String timestamp) {
+        try {
+            Path outputPath = Path.of("reports", repoId + "-" + timestamp + ".txt");
+            log.info("Saving report to: {}", outputPath.toAbsolutePath());
+
+            Files.createDirectories(outputPath.getParent());
+            Files.writeString(outputPath, report.toString(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            log.info("Report saved to {}", outputPath.toAbsolutePath());
+        } catch (IOException e) {
+            log.error("Failed to save report", e);
+        }
+    }
+
+    private Report failedReport(String repoId) {
+        return new Report(repoId, "Error", "Error", "Error", "Error", "Error");
+    }
+
+    private String safeStep(String name, CheckedSupplier<String> step, TimeRecorder recorder) {
+        long start = System.currentTimeMillis();
+        try {
+            String result = step.get();
+            long time = System.currentTimeMillis() - start;
+            log.info("{} completed in {}ms", name, time);
+            recorder.record(time);
+            return result;
+        } catch (Exception e) {
+            log.error("{} failed", name, e);
+            recorder.record(System.currentTimeMillis() - start);
+            return "Error during " + name.toLowerCase();
+        }
+    }
+
+    public interface CheckedSupplier<T> {
+        T get() throws Exception;
+    }
+
+    public interface TimeRecorder {
+        void record(long time);
+    }
+
+    private void writeTimingCsv(String repoId,
+                            long ingestionTime,
+                            long dependencyTime,
+                            long boundaryTime,
+                            long archDiagramTime,
+                            long analysisTime,
+                            long architectureRecTime,
+                            long startTime) {
+    String[] labels = {
+        "ingestion", "dependency", "boundary", "architectureDiagram", "analysis", "architectureRecommendation", "total"
+    };
+
+    long totalTime = System.currentTimeMillis() - startTime;
+    long[] durations = {
+        ingestionTime, dependencyTime, boundaryTime, archDiagramTime, analysisTime, architectureRecTime, totalTime
+    };
+
+    String timeStr = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+    Path csvPath = Path.of("report_timings.csv");
+
+    try {
+        Files.createDirectories(csvPath.getParent() != null ? csvPath.getParent() : Path.of("."));
+        boolean fileExists = Files.exists(csvPath);
+
+        try (BufferedWriter writer = Files.newBufferedWriter(csvPath, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+            if (!fileExists) {
+                writer.write("repoId,step,duration_ms,time\n");
+            }
+            for (int i = 0; i < labels.length; i++) {
+                writer.write(String.format("%s,%s,%d,%s\n", repoId, labels[i], durations[i], timeStr));
+            }
+        }
+    } catch (IOException e) {
+        log.error("Failed to write timing CSV", e);
+    }
+}
+
+
+public String generateAnalysis(String repoId, String dependencies, String boundary, String archDiagram, List<String> matchedPatterns, List<String> matchedAntiPatterns, String warningsSummary, List<String> dependencyIssues, Map<String, Double> scoringResults ) {
+    String filter = "repo == '" + repoId + "'";
+    List<Scoring> criteria = jsonUtils.loadScoringJson(Paths.get("doc/msa-scoring.json"));
+    List<MSAPattern> allPatterns = jsonUtils.loadPatternsJson(Paths.get("doc/msa-patterns.json"));
+    List<AntiPattern> antiPatterns = jsonUtils.loadAntiPatternsJson(Paths.get("doc/msa-anti-patterns.json"));
+    Map<String, List<String>> dependencyJson = jsonUtils.loadDependencyJson(Paths.get("src/main/resources/static/dependency-catergories.json"));
+
+    List<Document> docs = vectorStore.similaritySearch(
+        SearchRequest.builder()
+            .query("Summarize architecture patterns and anti-patterns for microservices")
+            .filterExpression(filter)
+            .topK(15)
+            .build()
+    );
+
+    String repoContext = docs.isEmpty()
+        ? "No additional context available from the repository content."
+        : docs.stream().map(Document::getText).limit(10).collect(Collectors.joining("\n---\n"));
+
+
+
+
+    Map<String, String> depCategory = dependencyJson.entrySet().stream()
+        .flatMap(e -> e.getValue().stream()
+            .map(lib -> Map.entry(lib.toLowerCase(), e.getKey())))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
+
+
+    Set<String> depTokens = Stream.of(dependencies.split("[,\\s]+"))
+        .map(String::trim)
+        .filter(s -> !s.isEmpty())
+        .map(String::toLowerCase)
+        .collect(Collectors.toSet());
+
+    Set<String> matchedCategories = new HashSet<>();
+    for (String dep : depTokens) {
+        if (depCategory.containsKey(dep)) {
+            matchedCategories.add(depCategory.get(dep));
+        }
+    }
+
+    String dependencyIssuesSummary = dependencyIssues.isEmpty()
+        ? "No dependency issues detected."
+        : dependencyIssues.stream()
+            .map(issue -> "- " + issue)
+            .collect(Collectors.joining("\n"));
+
+ 
+        Set<String> matchedPatternNames = matchedPatterns.stream()
+    .map(String::toLowerCase)
+    .collect(Collectors.toSet());
+
+    Set<String> matchedAntiPatternNames = matchedAntiPatterns.stream()
+    .map(String::toLowerCase)
+    .collect(Collectors.toSet());
+
+
+    double totalWeight = criteria.stream().mapToDouble(Scoring::getWeight).sum();
+
+Map<String, Double> normalizedWeights = criteria.stream()
+    .collect(Collectors.toMap(
+        Scoring::getName,
+        c -> c.getWeight() / totalWeight
+    ));
+
+List<String> individualScores = new ArrayList<>();
+double totalWeightedScore = 0.0;
+
+double overallScore = criteria.stream()
+    .mapToDouble(c -> {
+        double score = scoringResults.getOrDefault(c.getName(), 0.0);
+        return (c.getWeight() / totalWeight) * score;
+    }).sum();
+
+for (Scoring criterion : criteria) {
+    List<String> expectedPatterns = criterion.getPatterns();
+    if (expectedPatterns == null || expectedPatterns.isEmpty()) continue;
+
+    double weight = criterion.getWeight();
+
+    long matchedCount = expectedPatterns.stream()
+        .map(String::toLowerCase)
+        .filter(matchedPatternNames::contains)
+        .count();
+
+    double matchFraction = (double) matchedCount / expectedPatterns.size();
+    double matchScore = matchFraction * 10;
+
+    double normalizedWeight = normalizedWeights.get(criterion.getName());
+    double weightedScore = normalizedWeight * matchScore;
+    totalWeightedScore += weightedScore;
+
+    individualScores.add(String.format("%s: %.1f/10 (weighted: %.2f)", criterion.getName(), matchScore, weightedScore));
+}
+
+String matchedCriteriaSummary = criteria.stream()
+    .map(c -> {
+        List<String> matchedInCriterion = c.getPatterns().stream()
+            .filter(p -> matchedPatternNames.contains(p.toLowerCase()))
+            .toList();
+        if (matchedInCriterion.isEmpty()) return null;
+        String joined = matchedInCriterion.stream()
+            .map(p -> "  - " + p)
+            .collect(Collectors.joining("\n"));
+        return "- " + c.getName() + " (weight: " + c.getWeight() + ")\n" + joined;
+    })
+    .filter(Objects::nonNull)
+    .collect(Collectors.joining("\n"));
+
+String patternSummary = allPatterns.stream()
+    .filter(p -> matchedPatternNames.contains(p.getName().toLowerCase()))
+    .map(p -> "- " + p.getName() + ": " + p.getDescription())
+    .collect(Collectors.joining("\n"));
+
+String antiPatternSummary = antiPatterns.stream()
+    .filter(p -> matchedAntiPatternNames.contains(p.getName().toLowerCase()))
+    .map(p -> "- " + p.getName() + ": " + p.getDescription())
+    .collect(Collectors.joining("\n"));
+
+StringBuilder scoringSummary = new StringBuilder();
+if (scoringResults != null && !scoringResults.isEmpty()) {
+    scoringSummary.append("Detailed Scoring Results:\n");
+    scoringResults.forEach((criteriaKey, score) -> 
+        scoringSummary.append(String.format("- %s: %.2f\n", criteriaKey, score))
+    );
+} else {
+    scoringSummary.append("No scoring results available.\n");
+}
+
+
+
+    String categorySummary = matchedCategories.isEmpty()
+        ? "No known dependency categories matched."
+        : matchedCategories.stream().sorted().collect(Collectors.joining(", "));
+
     
+
+        String contextString = String.format("""
+            Repository architecture context:
+            %s
+        
+            Dependencies:
+            %s
+
+            Category Summary:
+            %s
+        
+            System Boundaries:
+            %s
+        
+            Architecture Diagram:
+            %s
+        
+            Matched Architectural Patterns:
+            %s
+        
+            Matched Architectural Anti-Patterns:
+            %s
+
+            Dependency Issues:
+            %s
+        
+            Warnings and Missing Configurations:
+            %s
+        
+            Evaluation Criteria:
+            %s
+            """, repoContext, dependencies, categorySummary, boundary, archDiagram, 
+                patternSummary, antiPatternSummary, dependencyIssuesSummary, warningsSummary, matchedCriteriaSummary);
+        
+        String evaluationSummary = scoringResults.entrySet().stream()
+    .map(entry -> String.format("- %s: %.2f/10", entry.getKey(), entry.getValue()))
+    .collect(Collectors.joining("\n"));
+
+String overall = String.format("""
+    **Overall Score:** %.2f/10
+    """, scoringResults.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
+
+
+    contextString += "\n" + evaluationSummary;
     
-    public String generateArchitecture(String repoId, String dependencies, String boundary, String archDiagram, String analysis) {
+    contextString += "\n" + overall;
+
+
+    Prompt prompt = new Prompt(List.of(
+        new SystemMessage("""
+            You are a senior microservices architect.
+
+            Your task is to analyze a repository's architecture using the provided context.
+
+            1. Detect which architectural patterns are evident.
+            2. Explain each detected pattern.
+            3. Summarize strengths and weaknesses.
+            4. Evaluate criteria:
+               - Score 0–10
+               - List strengths, weaknesses, and improvements
+
+            End with:
+            ## Overall Score: <0-10>
+            Summary: ...
+        """),
+        new UserMessage(contextString)
+    ));
+
+    long start = System.currentTimeMillis();
+    ChatResponse response = chatModel.call(prompt);
+    log.info("Architecture analysis completed in {}ms", System.currentTimeMillis() - start);
+    String analysisText = response.getResult().getOutput().getText();
+
+StringBuilder debugInfo = new StringBuilder();
+debugInfo.append("\n\n--- Debug Info ---\n");
+debugInfo.append("Matched Patterns:\n");
+matchedPatterns.forEach(p -> debugInfo.append("- ").append(p).append("\n"));
+debugInfo.append("Matched Anti-Patterns:\n");
+matchedAntiPatterns.forEach(ap -> debugInfo.append("- ").append(ap).append("\n"));
+debugInfo.append("Scoring Results:\n");
+if (scoringResults != null && !scoringResults.isEmpty()) {
+    scoringResults.forEach((key, score) -> 
+        debugInfo.append(String.format("- %s: %.2f\n", key, score))
+    );
+} else {
+    debugInfo.append("No scoring results available.\n");
+}
+
+return analysisText + debugInfo.toString();
+}
+
+ 
+    
+    public String generateArchitecture(String repoId, String dependencies, String boundary, String archDiagram, String analysis, Map<String, Double> scoringResults) {
+        StringBuilder scoringSummary = new StringBuilder();
+        if (scoringResults != null && !scoringResults.isEmpty()) {
+            scoringSummary.append("Scoring Results:\n");
+            scoringResults.forEach((key, score) -> scoringSummary.append(String.format("- %s: %.2f\n", key, score)));
+        }
+    
         String contextString = """
             Repository ID: %s
     
@@ -319,24 +515,30 @@ public class RagService {
             Architectural Analysis:
             %s
     
-            Based on this, refactor the codebase to improve clarity, separation of concerns, and modern best practices.
-            """.formatted(repoId, dependencies, boundary, archDiagram, analysis);
+            %s
+    
+            Based on this, refactor the codebase using an ASCII tree diagram.
+    
+            Use:
+            - '├──' and '└──' for tree structure
+            - API Gateway, Config Server, Event Bus, Discovery Server where appropriate
+            - Group related services logically
+            - Mark event producers and consumers
+            - Optimize modularity, resilience, and clarity
+        """.formatted(repoId, dependencies, boundary, archDiagram, analysis, scoringSummary);
     
         Prompt prompt = new Prompt(List.of(
             new SystemMessage("""
                 You are a senior microservices architect.
     
-                Refactor the codebase using this structure:
-                - Return an **ASCII tree** architecture diagram using '├──' and '└──'
-                - Introduce: API Gateway, Config Server, Event Bus, Discovery Server
-                - Group services logically (e.g. users, payments)
-                - Mark event producers/consumers
-                - Optimize for modularity and resilience
+                Your job is to provide a refactored architecture diagram and explanation based on the given context and scoring results.
+    
+                First, provide the ASCII tree diagram.
     
                 Then, explain:
-                - New architecture
                 - What changed and why
                 - Patterns applied
+                - How scoring influenced the design decisions
             """),
             new UserMessage(contextString)
         ));
@@ -353,42 +555,11 @@ public class RagService {
         return output;
     }
     
-    public String generateBoundary2(BinaryTreeNode repoUrl) throws JsonProcessingException{
-        Map<String, String> codeFiles = gitHubApi.extractCode(repoUrl);
-
-        List<ServiceBoundaryUtils.ServiceBoundary> artifacts = serviceBoundary.extractFiles(codeFiles);
-        ServiceBoundaryUtils.ArchitectureMap archMap = serviceBoundary.fallback(artifacts);
     
-        archMap.serviceCalls = serviceBoundary.inferServiceRelations(archMap);
-
-        archMap.printLayers();
-
-        String diagram = serviceBoundary.generateFlatDiagramWithClearArrows(archMap);
-        System.out.println("Here is the digram" + diagram);
-                return diagram;
-
-    }
-
    
 
     
-    public BoundaryResult inferBoundary(BinaryTreeNode root) {
-        Map<String, String> codeFiles = gitHubApi.extractCode(root);
-        
-        if (codeFiles == null || codeFiles.isEmpty()) {
-            return new BoundaryResult("No source code found.");
-        }
-    
-        List<ServiceBoundary> artifacts = serviceBoundary.extractFiles(codeFiles);
-        if (artifacts.isEmpty()) {
-            return new BoundaryResult("No service boundary artifacts extracted.");
-        }
-    
-        ArchitectureMap map = serviceBoundary.fallback(artifacts);
-        String context = serviceBoundary.generateBoundaryContextDiagram(map);
-    
-        return new BoundaryResult(context);
-    }
+ 
     
     
     public String answer(String question, String repoId) {
@@ -502,5 +673,64 @@ public class RagService {
             """.formatted(repoId, dependencies, boundary, archDiagram, analysis);
     }
     
+    public List<String> matchGlobalArchitecturePatterns(BinaryTreeNode root, List<AntiPattern> antiPatterns, String dependencies, String archDiagram, String boundaries) {
+        String lowerDeps = dependencies.toLowerCase();
+        String lowerArch = archDiagram.toLowerCase();
+        String lowerBoundaries = boundaries.toLowerCase();
+    
+        List<String> matched = antiPatterns.stream()
+            .filter(p -> {
+                String patternText = p.getName().toLowerCase();
+                return lowerDeps.contains(patternText)
+                    || lowerArch.contains(patternText)
+                    || lowerBoundaries.contains(patternText);
+            })
+            .map(AntiPattern::getName)
+            .distinct()
+            .toList();
+    
+        if (matched.isEmpty()) {
+            log.info("No anti-patterns matched.");
+        } else {
+            log.warn("Detected architecture anti-patterns: {}", String.join(", ", matched));
+        }
+    
+        return matched;
+    }
+    public List<String> matchAntiPatterns(BinaryTreeNode root, List<AntiPattern> antiPatterns, String deps, String arch, String boundaries) {
+        return matchGlobalArchitectureConcepts(root, antiPatterns, deps, arch, boundaries, AntiPattern::getName, "anti-pattern");
+    }
+    
+    public List<String> matchPatterns(BinaryTreeNode root, List<MSAPattern> patterns, String deps, String arch, String boundaries) {
+        return matchGlobalArchitectureConcepts(root, patterns, deps, arch, boundaries, MSAPattern::getName, "pattern");
+    }
+
+    private <T> List<String> matchGlobalArchitectureConcepts(
+        BinaryTreeNode root,
+        List<T> concepts,
+        String dependencies,
+        String archDiagram,
+        String boundaries,
+        Function<T, String> nameExtractor,
+        String label 
+) {
+    String lowerDeps = dependencies.toLowerCase();
+    String lowerArch = archDiagram.toLowerCase();
+    String lowerBoundaries = boundaries.toLowerCase();
+
+    return concepts.stream()
+        .map(c -> Map.entry(nameExtractor.apply(c), nameExtractor.apply(c).toLowerCase()))
+        .filter(entry ->
+            lowerDeps.contains(entry.getValue()) ||
+            lowerArch.contains(entry.getValue()) ||
+            lowerBoundaries.contains(entry.getValue()))
+        .map(Map.Entry::getKey)
+        .distinct()
+        .peek(name -> log.warn("Detected architecture {}: {}", label, name))
+        .toList();
+}
+
+    
     
 }
+

@@ -12,9 +12,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -30,7 +32,7 @@ import com.nsf.langchain.git.GitHubApi;
 
 @Component
 public class ArchitectureUtils {
-    private final GitHubApi gitHubApi;
+    private GitHubApi gitHubApi;
     private final ObjectMapper mapper = new ObjectMapper();
     private Map<String, List<String>> catergoryKeywords;
 
@@ -38,6 +40,11 @@ public class ArchitectureUtils {
         this.gitHubApi = gitHubApi;
         loadCatergoryKeywords();
     }
+
+    public ArchitectureUtils() {
+        loadCatergoryKeywords();
+    }
+
 
     private void loadCatergoryKeywords() {
 
@@ -170,6 +177,100 @@ public class ArchitectureUtils {
             }
         }
         return allDependencies.isEmpty() ? "No build dependencies found." : result.toString();
+}
+
+public String getDependencyFile(List<BinaryTreeNode> fileNodes) throws Exception {
+    List<String> allDependencies = new ArrayList<>();
+
+    Set<String> filesToCheck = Set.of(
+        "pom.xml", "build.gradle", "build.gradle.kts",
+        "package.json", "package-lock.json",
+        "requirements.txt", "pyproject.toml", "Pipfile", "setup.py",
+        "Cargo.toml", "go.mod", "Gopkg.toml", ".csproj", "Gemfile", "CMakeLists.txt", "Makefile"
+    );
+
+    for (BinaryTreeNode node : fileNodes) {
+        String fileName = node.name;
+        if (!filesToCheck.contains(fileName)) continue;
+
+        String content = node.content;
+        if (content == null || content.isEmpty()) continue;
+
+        try {
+            switch (fileName) {
+                case "pom.xml":
+                    allDependencies.addAll(parsePomXml(content));
+                    break;
+                case "build.gradle":
+                case "build.gradle.kts":
+                    allDependencies.addAll(parseGradle(content));
+                    break;
+                case "package.json":
+                    allDependencies.addAll(parsePackageJson(content));
+                    break;
+                case "Gemfile":
+                    allDependencies.addAll(parseGemfile(content));
+                    break;
+                case ".csproj":
+                    allDependencies.addAll(parseCsprojXml(content));
+                    break;
+                case "pyproject.toml":
+                    allDependencies.addAll(parsePyProjectToml(content));
+                    break;
+                case "requirements.txt":
+                    allDependencies.addAll(parseRequirementsTxt(content));
+                    break;
+                case "setup.py":
+                    allDependencies.addAll(parseSetupPy(content));
+                    break;
+                case "go.mod":
+                    allDependencies.addAll(parseGoMod(content));
+                    break;
+                case "Gopkg.toml":
+                    allDependencies.addAll(parseGopkgToml(content));
+                    break;
+                case "package-lock.json":
+                    allDependencies.addAll(parsePackageLockJson(content));
+                    break;
+                case "Pipfile":
+                    allDependencies.addAll(parsePipfile(content));
+                    break;
+                case "Cargo.toml":
+                    allDependencies.addAll(parseCargoToml(content));
+                    break;
+                case "CMakeLists.txt":
+                    allDependencies.addAll(parseCMakeLists(content));
+                    break;
+                case "Makefile":
+                    allDependencies.addAll(parseMakefile(content));
+                    break;
+                default:
+                    System.out.println("No parser defined for file: " + fileName);
+                    break;
+            }
+            System.out.println("Parsed " + fileName + ", found " + allDependencies.size() + " total dependencies so far.");
+        } catch (Exception e) {
+            System.err.println("Error parsing " + fileName + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    Map<String, List<String>> categorized = new LinkedHashMap<>();
+    for (String dep : allDependencies) {
+        String cat = categorizeDependency(dep);
+        categorized.computeIfAbsent(cat, k -> new ArrayList<>()).add(dep);
+    }
+
+    StringBuilder result = new StringBuilder();
+    for (Map.Entry<String, List<String>> entry : categorized.entrySet()) {
+        result.append(entry.getKey()).append(":\n");
+        Set<String> uniqueDeps = new LinkedHashSet<>(entry.getValue());
+        for (String dep : uniqueDeps) {
+            result.append("  - ").append(dep).append("\n");
+        }
+    }
+
+    return allDependencies.isEmpty() ? "No build dependencies found." : result.toString();
 }
 
     private List<String> parsePomXml(String pomXmlContent) throws Exception {
@@ -534,5 +635,13 @@ public class ArchitectureUtils {
         }
     }
 }
+
+    public Object getDependencyFiles(List<BinaryTreeNode> fileNodes) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getDependencyFiles'");
+    }
+
+
+
 
 }

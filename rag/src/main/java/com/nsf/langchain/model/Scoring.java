@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -17,21 +20,35 @@ public class Scoring {
     private String guidance;
     private List<String> patterns;
     private double weight;
-    
+
+
+    private Map<String, Integer> matchedPatternCounts = new HashMap<>();
+    private int totalMatches = 0;
+
+    public void addMatch(String pattern) {
+        matchedPatternCounts.merge(pattern, 1, Integer::sum);
+        totalMatches++;
+    }
+
     @Override
     public String toString(){
-     return String.format("""
-             === Scoring ===
-             Name: %s
+        return String.format("""
+            === Scoring ===
+            Name: %s
 
-             Description: %s
+            Description: %s
 
-             Guidance: %s
+            Guidance: %s
 
-             Patterns: %s
+            Patterns: %s
 
-             Weight: %s
+            Weight: %s
 
-             """, name, description, guidance, patterns, weight);
+            Total Matches: %d
+
+            Matched Pattern Counts: %s
+
+            """, name, description, guidance, patterns, weight, totalMatches, matchedPatternCounts);
     }
 }
+

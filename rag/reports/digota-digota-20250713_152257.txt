@@ -1,0 +1,326 @@
+=== Repository Analysis Report ===
+
+Repository ID: digota-digota
+
+--- Dependency Overview ---
+CI/CD & DevOps Tools:
+  - github.com/garyburd/redigo:1.6.0
+  - github.com/icrowley/fake:master
+  - github.com/kelseyhightower/envconfig:1.3.0
+  - github.com/pkg/errors:0.8.0
+  - github.com/rhymond/go-money:0.3.6
+  - github.com/sirupsen/logrus:1.1.1
+  - github.com/stripe/stripe-go:28.3.1
+  - github.com/yaronsumel/go-zookeeper:master
+  - github.com/sirupsen/logrus:1.0.3
+  - github.com/davecgh/go-spew v1.1.1 // indirect
+  - github.com/konsorten/go-windows-terminal-sequences v0.0.0-20180402223658-b729f2633dfe
+  - github.com/pmezard/go-difflib v1.0.0 // indirect
+  - github.com/client9/misspell v0.3.4
+  - github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+  - github.com/golang/lint v0.0.0-20180702182130-06c8688daad7
+  - github.com/kisielk/gotool v1.0.0 // indirect
+Serialization:
+  - github.com/gogo/protobuf:1.1.1
+  - github.com/golang/protobuf:master
+  - github.com/gogo/protobuf:0.5.0
+  - github.com/golang/protobuf v1.2.0
+Web / API:
+  - github.com/grpc-ecosystem/go-grpc-middleware:1.0.0
+  - google.golang.org/grpc:1.15.0
+  - google.golang.org/grpc:1.8.0
+Utility:
+  - github.com/satori/go.uuid:1.2.0
+Testing:
+  - github.com/stretchr/testify:1.2.2
+  - github.com/stretchr/testify:1.1.4
+  - github.com/stretchr/testify v1.2.2
+  - github.com/golang/mock v1.1.1
+Other:
+  - golang.org/x/net:master
+  - gopkg.in/go-playground/validator.v9:9.21.0
+  - gopkg.in/mgo.v2:v2
+  - gopkg.in/urfave/cli.v1:1.20.0
+  - go.uber.org/zap:1.7.1
+  - golang.org/x/oauth2:master
+  - golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
+  - golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33
+  - cloud.google.com/go v0.26.0 // indirect
+  - golang.org/x/lint v0.0.0-20180702182130-06c8688daad7 // indirect
+  - golang.org/x/net v0.0.0-20180826012351-8a410e7b638d
+  - golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
+  - golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
+  - golang.org/x/sys v0.0.0-20180830151530-49385e6e1522
+  - golang.org/x/text v0.3.0 // indirect
+  - golang.org/x/tools v0.0.0-20180828015842-6cd1fcedba52
+  - google.golang.org/appengine v1.1.0 // indirect
+  - google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8
+  - honnef.co/go/tools v0.0.0-20180728063816-88497007e858
+Monitoring:
+  - github.com/opentracing/opentracing-go:1.0.2
+
+
+--- Architecture Analysis ---
+Insufficient repository context found for generating analysis.
+
+--- Current Architecture Diagram ---
+└── directory digota
+    ├── file .gitignore
+    ├── file .travis.yml
+    ├── file CODE_OF_CONDUCT.md
+    ├── file CONTRIBUTING.md
+    ├── file Gopkg.lock
+    ├── file Gopkg.toml
+    ├── file LICENSE
+    ├── file README.md
+    ├── file _config.yml
+    ├── dir _example
+    │   ├── dir auth
+    │   │   ├── file README.md
+    │   │   └── file auth.go
+    │   ├── dir order
+    │   │   ├── file get.go
+    │   │   ├── file list.go
+    │   │   ├── file new.go
+    │   │   ├── file pay.go
+    │   │   └── file return.go
+    │   ├── dir payment
+    │   │   ├── file charge.go
+    │   │   ├── file list.go
+    │   │   └── file refund.go
+    │   ├── dir product
+    │   │   ├── file delete.go
+    │   │   ├── file get.go
+    │   │   ├── file list.go
+    │   │   ├── file new.go
+    │   │   └── file update.go
+    │   └── dir sku
+    │       ├── file get.go
+    │       ├── file new.go
+    │       └── file update.go
+    ├── dir acl
+    │   ├── file acl.go
+    │   └── file acl_test.go
+    ├── dir client
+    │   ├── file client.go
+    │   └── file client_test.go
+    ├── dir config
+    │   └── file config.go
+    ├── dir docker
+    │   ├── dir build
+    │   │   └── file Dockerfile
+    │   └── file docker-compose.yml
+    ├── dir locker
+    │   ├── dir handlers
+    │   │   ├── dir memlock
+    │   │   │   ├── file memlock.go
+    │   │   │   └── file memlock_test.go
+    │   │   ├── dir redis
+    │   │   │   ├── file redis.go
+    │   │   │   └── file redis_test.go
+    │   │   └── dir zookeeper
+    │   │       ├── file zookeeper.go
+    │   │       └── file zookeeper_test.go
+    │   ├── file locker.go
+    │   └── file locker_test.go
+    ├── file main.go
+    ├── dir middleware
+    │   ├── dir authentication
+    │   │   ├── file authentication.go
+    │   │   └── file authentication_test.go
+    │   ├── dir logger
+    │   │   ├── file logger.go
+    │   │   └── file logger_test.go
+    │   └── dir recovery
+    │       ├── file recovery.go
+    │       └── file recovery_test.go
+    ├── dir order
+    │   ├── file order.go
+    │   ├── file order_test.go
+    │   ├── dir orderpb
+    │   │   ├── file order.pb.go
+    │   │   └── file order.proto
+    │   └── dir service
+    │       ├── file service.go
+    │       └── file service_test.go
+    ├── dir payment
+    │   ├── dir errors
+    │   │   ├── file errors.go
+    │   │   └── file errors_test.go
+    │   ├── file payment.go
+    │   ├── file payment_test.go
+    │   ├── dir paymentpb
+    │   │   ├── file payment.pb.go
+    │   │   └── file payment.proto
+    │   └── dir service
+    │       ├── dir providers
+    │       │   ├── dir internalTestOnly
+    │       │   │   ├── file internalTestOnly.go
+    │       │   │   └── file internalTestOnly_test.go
+    │       │   ├── file providers.go
+    │       │   ├── file providers_test.go
+    │       │   └── dir stripe
+    │       │       ├── file stripe.go
+    │       │       └── file stripe_test.go
+    │       ├── file service.go
+    │       └── file service_test.go
+    ├── dir pbgenerator
+    │   ├── file Makefile
+    │   └── file Makefile.bat
+    ├── dir product
+    │   ├── file product.go
+    │   ├── file product_test.go
+    │   ├── dir productpb
+    │   │   ├── file product.pb.go
+    │   │   └── file product.proto
+    │   └── dir service
+    │       ├── file service.go
+    │       └── file service_test.go
+    ├── dir sdk
+    │   ├── file sdk.go
+    │   ├── file sdk_test.go
+    │   └── dir testFiles
+    │       ├── file ca.crt
+    │       ├── file client.com.crt
+    │       └── file client.com.key
+    ├── dir server
+    │   └── file server.go
+    ├── dir sku
+    │   ├── dir service
+    │   │   ├── file service.go
+    │   │   └── file service_test.go
+    │   ├── file sku.go
+    │   ├── file sku_test.go
+    │   └── dir skupb
+    │       ├── file sku.pb.go
+    │       └── file sku.proto
+    ├── dir storage
+    │   ├── dir handlers
+    │   │   └── dir mongo
+    │   │       ├── file mongo.go
+    │   │       └── file mongo_test.go
+    │   ├── dir object
+    │   │   └── file object.go
+    │   ├── file storage.go
+    │   └── file storage_test.go
+    ├── dir util
+    │   ├── file util.go
+    │   └── file util_test.go
+    ├── dir validation
+    │   ├── file validation.go
+    │   └── file validation_test.go
+    └── dir vendor
+        ├── dir github.com
+        │   ├── dir corpix
+        │   │   └── dir uarand
+        │   │       ├── file .gitignore
+        │   │       ├── file .travis.yml
+        │   │       ├── file LICENSE
+        │   │       ├── file Makefile
+        │   │       ├── file README.md
+        │   │       ├── file glide.lock
+        │   │       ├── file glide.yaml
+        │   │       ├── file uarand.go
+        │   │       └── file useragents.go
+        │   ├── dir davecgh
+        │   │   └── dir go-spew
+        │   │       ├── file LICENSE
+        │   │       └── dir spew
+        │   │           ├── file bypass.go
+        │   │           ├── file bypasssafe.go
+        │   │           ├── file common.go
+        │   │           ├── file config.go
+        │   │           ├── file doc.go
+        │   │           ├── file dump.go
+        │   │           ├── file format.go
+        │   │           └── file spew.go
+        │   ├── dir garyburd
+        │   │   └── dir redigo
+        │   │       ├── file LICENSE
+        │   │       ├── dir internal
+        │   │       │   └── file commandinfo.go
+        │   │       └── dir redis
+        │   │           ├── file conn.go
+        │   │           ├── file doc.go
+        │   │           ├── file go16.go
+        │   │           ├── file go17.go
+        │   │           ├── file go18.go
+        │   │           ├── file log.go
+        │   │           ├── file pool.go
+        │   │           ├── file pool17.go
+        │   │           ├── file pubsub.go
+        │   │           ├── file redis.go
+        │   │           ├── file reply.go
+        │   │           ├── file scan.go
+        │   │           └── file script.go
+        │   ├── dir go-playground
+        │   │   ├── dir locales
+        │   │   │   ├── file .gitignore
+        │   │   │   ├── file LICENSE
+        │   │   │   ├── file README.md
+        │   │   │   ├── dir currency
+        │   │   │   ├── file logo.png
+        │   │   │   └── file rules.go
+        │   │   └── dir universal-translator
+        │   ├── dir gogo
+        │   ├── dir golang
+        │   ├── dir grpc-ecosystem
+        │   ├── dir icrowley
+        │   ├── dir kelseyhightower
+        │   ├── dir konsorten
+        │   ├── dir pkg
+        │   ├── dir pmezard
+        │   ├── dir rhymond
+        │   ├── dir satori
+        │   ├── dir sirupsen
+        │   ├── dir stretchr
+        │   ├── dir stripe
+        │   └── dir yaronsumel
+        ├── dir golang.org
+        ├── dir google.golang.org
+        └── dir gopkg.in
+
+
+--- Identified Service Boundaries ---
+Error during service boundary
+
+--- Recommended Improvements ---
+
+
+--- Refactored Architecture Plan ---
+ Based on your request, I will provide an ASCII architecture diagram for the refactored microservices architecture using the specified components and optimizations. Here is a high-level overview:
+
+1. Introduce API Gateway: To handle all external HTTP/gRPC requests to the services, we'll use an API Gateway (e.g., Kong or Ambassador by Datawire). The gateway will act as a single entry point for clients and route traffic to the appropriate service based on the requested resource.
+
+2. Config Server: Implement a configuration server such as Spring Cloud Config or Consul, which stores application configurations in a centralized location (e.g., GitHub or AWS S3). This way, we can easily manage and update config parameters for multiple services without modifying the codebase directly.
+
+3. Event Bus: Incorporate an event-driven architecture using a messaging system like Apache Kafka or RabbitMQ to enable loose coupling between microservices. This will allow services to communicate asynchronously through published events.
+
+4. Separation of Concerns (SoC): Ensure that each service is responsible for a specific business domain and has its own independent codebase, following Single Responsibility Principle (SRP).
+
+5. Modern Best Practices: Adopt modern best practices such as using gRPC for high-performance inter-service communication, dependency injection for service composition, and containerization with Docker or Kubernetes for easy deployment and scaling.
+
+Here's the ASCII architecture diagram for the refactored microservices architecture:
+
+```
+   +----------------+      +----------------+     +----------------+
+   |   API Gateway  | <---> |    Service A    | <--->|     Service B   |
+   +----------------+      +----------------+     +----------------+
+                            | Config Server  |              | Event Bus  |
+                            +----------------+              +-------------+
+                                               |
+                                               |
+                                               v
+           +----------------+             +----------------+
+           |    Client A (Web) | <--->     |   Client B (API) |
+           +----------------+             +----------------+
+```
+
+In this diagram:
+- API Gateway handles all incoming client requests, routes them to the appropriate service based on the requested resource.
+- Services A and B are independently developed microservices responsible for specific business domains. They communicate with each other through events published on the Event Bus.
+- Config Server stores application configurations in a centralized location, allowing for easy management and updates.
+- Each service communicates with the API Gateway, Config Server, and Event Bus using gRPC for high-performance inter-service communication.
+- Clients A and B interact with the API Gateway through HTTP/gRPC endpoints.
+
+This architecture promotes a scalable, flexible, and loosely coupled system that is easy to maintain and update as your business requirements evolve.

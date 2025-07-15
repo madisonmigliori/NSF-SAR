@@ -60,29 +60,5 @@ public class RepoController {
         }
     }
 
-    @PostMapping("/dependencies")
-    @Operation(
-            summary = "Extract Dependencies",
-            description = "Scans build files like pom.xml or build.gradle from the given repo and returns a list of detected dependencies."
-    )
-    public ResponseEntity<String> extractDependencies(@RequestParam String gitUrl) {
-        try {
-            String[] parts = gitUrl.split("/");
-            if (parts.length < 2) {
-                return ResponseEntity.badRequest().body("Invalid GitHub URL format.");
-            }
-
-            String user = parts[parts.length - 2];
-            String repo = parts[parts.length - 1].replace(".git", "");
-
-            String dependencies = architectureUtils.getDependency(user, repo);
-            return ResponseEntity.ok(dependencies);
-
-        } catch (Exception e) {
-            log.error("Dependency extraction failed for repo: {}", gitUrl, e);
-            return ResponseEntity
-                    .status(500)
-                    .body("Error extracting dependencies: " + e.getMessage());
-        }
-    }
+   
 }
