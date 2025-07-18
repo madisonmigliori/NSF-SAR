@@ -18,6 +18,7 @@ public class AntiPattern {
     private String description;
     private List<String> impact;
     private String severity;
+    private String guidance;
 
     private transient Pattern detectionRegex;
     private boolean requiresNegativeMatch;
@@ -26,19 +27,24 @@ public class AntiPattern {
     public void initDetectionRegex() {
         switch (name.toLowerCase()) {
             case "esb usage":
-                detectionRegex = Pattern.compile("\\b(enterprise service bus|esb)\\b", Pattern.CASE_INSENSITIVE);
+                detectionRegex = Pattern.compile("\\b(enterprise service bus|esb|enterprise service bus|esb|mule|wso2|tibco|oracle service bus|sap pi|integration bus\n" + //
+                                        ")\\b", Pattern.CASE_INSENSITIVE);
                 break;
             case "too many standards":
-                detectionRegex = Pattern.compile("\\b(multiple frameworks|inconsistent standards)\\b", Pattern.CASE_INSENSITIVE);
+                detectionRegex = Pattern.compile("\\b(multiple frameworks|inconsistent standards| duplicate stack|tech sprawl|mixed libraries\n" + //
+                                        ")\\b", Pattern.CASE_INSENSITIVE);
                 break;
             case "wrong cuts":
-                detectionRegex = Pattern.compile("\\b(technical layers|data/business/presentation)\\b", Pattern.CASE_INSENSITIVE);
+                detectionRegex = Pattern.compile("\\b(technical layers|data/business/presentation|layered service split|non-domain split|controller-service-repo|vertical slicing error\n" + //
+                                        ")\\b", Pattern.CASE_INSENSITIVE);
                 break;
             case "hard-coded endpoints":
-                detectionRegex = Pattern.compile("\\b(hardcoded ip|hard-coded ip|hardcoded port|hard-coded port|static ip|static port)\\b", Pattern.CASE_INSENSITIVE);
+                detectionRegex = Pattern.compile("\\b(hardcoded ip|hard-coded ip|hardcoded port|hard-coded port|static ip|static port|hardcoded ip|hard-coded ip|hardcoded port|static ip|static port|inline address|localhost with port\n" + //
+                                        ")\\b", Pattern.CASE_INSENSITIVE);
                 break;
             case "api versioning":
-                detectionRegex = Pattern.compile("\\b(api versioning|backward compatibility|api backward compatibility)\\b", Pattern.CASE_INSENSITIVE);
+                detectionRegex = Pattern.compile("\\b(api versioning|backward compatibility|api backward compatibility|no versioning|missing version|v1 hardcoded|breaking changes api|backward incompatibility\n" + //
+                                        ")\\b", Pattern.CASE_INSENSITIVE);
                 break;
             case "microservice greedy":
                 detectionRegex = Pattern.compile("\\b(microservice greedy|excessive fragmentation|too many microservices|microservice overhead)\\b", Pattern.CASE_INSENSITIVE);
@@ -47,25 +53,84 @@ public class AntiPattern {
                 detectionRegex = Pattern.compile("\\b(shared database|shared persistency|shared persistence|shared datastore|data coupling|violation of service boundaries)\\b", Pattern.CASE_INSENSITIVE);
                 break;
             case "inappropriate service intimacy":
-                detectionRegex = Pattern.compile("\\b(service intimacy|private data access|breaking encapsulation|tight coupling)\\b", Pattern.CASE_INSENSITIVE);
+                detectionRegex = Pattern.compile("\\b(service intimacy|private data access|breaking encapsulation|tight coupling|common lib|shared lib|tight coupling via code|core-utils|framework inheritance|monolithic library\n" + //
+                                        ")\\b", Pattern.CASE_INSENSITIVE);
                 break;
             case "shared libraries":
-                detectionRegex = Pattern.compile("\\b(shared libraries|common libraries|library coupling|low modularity)\\b", Pattern.CASE_INSENSITIVE);
+                detectionRegex = Pattern.compile("\\b(shared libraries|common libraries|library coupling|low modularity|common lib|shared lib|tight coupling via code|core-utils|framework inheritance|monolithic library\n" + //
+                                        ")\\b", Pattern.CASE_INSENSITIVE);
                 break;
             case "cyclic dependency":
-                detectionRegex = Pattern.compile("\\b(cyclic dependency|cyclic calls|circular dependency|complex call chains|dependency cycle)\\b", Pattern.CASE_INSENSITIVE);
+                detectionRegex = Pattern.compile("\\b(cyclic dependency|cyclic calls|circular dependency|complex call chains|dependency cycle|cyclic call|circular service reference|a -> b -> c -> a|dependency loop|circular import\n" + //
+                                        ")\\b", Pattern.CASE_INSENSITIVE);
                 break;
-         
-
+                case "distributed monolith":
+                detectionRegex = Pattern.compile("\\b(distributed monolith|tight synchronous communication|mandatory cross-service calls|interdependent services|services fail together)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "over-microservices":
+                detectionRegex = Pattern.compile("\\b(over-microservices|too many services|service explosion|fragmented system|coordination cost)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "violating single responsibility":
+                detectionRegex = Pattern.compile("\\b(multiple concerns|entangled logic|poor separation|unrelated concerns in one service|violates SRP)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "spaghetti architecture":
+                detectionRegex = Pattern.compile("\\b(spaghetti architecture|tangled dependencies|unmanaged interactions|dense dependency graph|no clear boundaries)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "distributed data inconsistency":
+                detectionRegex = Pattern.compile("\\b(distributed data inconsistency|eventual consistency issue|data integrity problem|redundant data|sync issue)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "tight coupling":
+                detectionRegex = Pattern.compile("\\b(tight coupling|must deploy together|shared implementation|coordinated updates|low flexibility)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "ignoring human costs":
+                detectionRegex = Pattern.compile("\\b(human cost|team burnout|cognitive load|overwhelming complexity|team skill mismatch)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "monolithic mindset in microservices":
+                detectionRegex = Pattern.compile("\\b(monolithic mindset|monolith in disguise|centralized database|shared state|monolithic thinking)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "data monolith":
+                detectionRegex = Pattern.compile("\\b(data monolith|centralized database|tight data coupling|shared schema|db dependency)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "chatty communication":
+                detectionRegex = Pattern.compile("\\b(chatty communication|high traffic between services|fine-grained messages|frequent calls|message overload)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "inadequate service boundaries":
+                detectionRegex = Pattern.compile("\\b(inadequate boundaries|unclear responsibilities|overlapping concerns|modularity issues|wrong granularity)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "service sprawl":
+                detectionRegex = Pattern.compile("\\b(service sprawl|excessive microservices|too many services|uncontrolled growth|complexity overload)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "over-reliance on orchestration":
+                detectionRegex = Pattern.compile("\\b(over-reliance on orchestration|tied to orchestrator|platform dependency|limited portability|orchestration bottleneck)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
+            case "ignoring observability":
+                requiresNegativeMatch = true;
+                negativeMatchTerm = "distributed tracing|jaeger|zipkin|opentelemetry|x-ray";
+                detectionRegex = Pattern.compile("\\b(ignoring observability|no monitoring|missing logs|no tracing|lack of metrics|debugging blind)\\b", Pattern.CASE_INSENSITIVE);
+                break;
+            
             case "not having an api gateway":
                 requiresNegativeMatch = true;
                 negativeMatchTerm = "api gateway|gateway|api-gateway|api_gateway";
-                detectionRegex = Pattern.compile("\\b(direct communication among services)\\b", Pattern.CASE_INSENSITIVE);
+                detectionRegex = Pattern.compile("\\b(direct communication among services|no gateway|client-to-service calls|missing ingress controller\n" + //
+                                        ")\\b", Pattern.CASE_INSENSITIVE);
                 break;
-            
             case "missing distributed tracing":
                 requiresNegativeMatch = true;
-                negativeMatchTerm = "distributed tracing|jaeger|zipkin|opentelemetry|x-ray";
+                negativeMatchTerm = "distributed tracing|jaeger|zipkin|opentelemetry|x-ray|micrometer|otel";
                 break;
             case "no service discovery":
                 requiresNegativeMatch = true;
@@ -82,12 +147,7 @@ public class AntiPattern {
     }
     
 
-    // public boolean matches(String content) {
-    //     if (detectionRegex == null) {
-    //         initDetectionRegex(); 
-    //     }
-    //     return detectionRegex.matcher(content).find();
-    // }
+   
 
   
     public boolean matches(String content) {
@@ -140,8 +200,10 @@ public class AntiPattern {
                 ", description='" + description + '\'' +
                 ", impact=" + impact +
                 ", severity='" + severity + '\'' +
+                ", guidance='" + guidance + '\'' +
                 ", requiresNegativeMatch=" + requiresNegativeMatch +
                 ", negativeMatchTerm='" + negativeMatchTerm + '\'' +
+                
                 '}';
     }
 

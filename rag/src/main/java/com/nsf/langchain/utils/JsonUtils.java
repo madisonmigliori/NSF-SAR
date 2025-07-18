@@ -70,11 +70,11 @@ public class JsonUtils {
 
         root.fields().forEachRemaining(entry -> {
             String category = entry.getKey();
-            JsonNode libsNode = entry.getValue();
-            if (libsNode.isArray()) {
-                List<String> libs = new ArrayList<>();
-                libsNode.forEach(libNode -> libs.add(libNode.asText()));
-                categoryMap.put(category, libs);
+            JsonNode depsNode = entry.getValue();
+            if (depsNode.isArray()) {
+                List<String> deps = new ArrayList<>();
+                depsNode.forEach(depNode -> deps.add(depNode.asText()));
+                categoryMap.put(category, deps);
             }
         });
 

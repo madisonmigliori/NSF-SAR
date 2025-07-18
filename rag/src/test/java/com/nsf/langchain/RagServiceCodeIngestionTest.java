@@ -23,10 +23,7 @@ import java.util.Map;
 public class RagServiceCodeIngestionTest {
 
     @MockBean
-    private GitHubApi gitHubApi;  // Spring injects this mock everywhere GitHubApi is needed
-
-    @Autowired
-    private ServiceBoundaryUtils serviceBoundary;
+    private GitHubApi gitHubApi;  
 
     @Test
     public void testExtractAndPrintCodeFiles() throws Exception {
@@ -79,9 +76,11 @@ codeFiles.forEach((path, content) -> {
         assertNotNull(token, "GITHUB_PAT must be set in .env for this test");
     
         ArchitectureUtils architectureUtils = new ArchitectureUtils();
+        ServiceBoundaryUtils serviceBoundary = new ServiceBoundaryUtils();
     
-        GitHubApi realApi = new GitHubApi(architectureUtils);
-    
+
+        GitHubApi realApi = new GitHubApi(architectureUtils, serviceBoundary);
+
         String repoUrl = "https://github.com/spring-projects/spring-petclinic";
         BinaryTreeNode root = realApi.inspectRepo(repoUrl);
         assertNotNull(root, "Root from real repo should not be null");
@@ -90,7 +89,7 @@ codeFiles.forEach((path, content) -> {
         assertFalse(codeFiles.isEmpty(), "Expected code files from real repo");
     
         System.out.println("Extracted file count: " + codeFiles.size());
-        codeFiles.forEach((path, content) -> System.out.println("📄 " + path));
+        codeFiles.forEach((path, content) -> System.out.println(" " + path));
     
         System.out.println("Tree Structure:");
         GitHubApi.printTree(root, "  ");

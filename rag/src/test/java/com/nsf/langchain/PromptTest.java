@@ -34,22 +34,13 @@ public class PromptTest {
 
   
 
+     
 
-
-
-    @Test
-    public void shouldGenerateAnalysisPrompt() {
-        String result = ragService.testPromptOnly(
-            "analysis",
-            "repo-123",
-            "Spring Boot, Kafka",
-            "└── order-service",
-            "└── ecommerce-platform",
-            "Analysis pending..."
-        );
-        System.out.println(result);
-        assert(result).contains("Dependencies:");
+    private void assertLayerContains(List<String> layer, String expected, String layerName) {
+        assertTrue(layerName + " should contain: " + expected + "\nActual: " + layer,
+            layer.stream().anyMatch(s -> s.contains(expected)));
     }
+    
 
     @Test
     public void testBoundaryAndContextExtraction() throws IOException {
@@ -62,33 +53,33 @@ public class PromptTest {
     List<ServiceBoundary> boundaries = utils.extractFiles(files);
     ArchitectureMap map = utils.fallback(boundaries);
 
+    System.out.println("Services: " + map.services.keySet());
+    System.out.println("Full Map:\n" + map.services);
 
-    String asciiDiagram2 = utils.generateVerticalDiagramWithLevelsAndArrows2(map);
-
-    System.out.println("Map: " + map.services.entrySet());
-    System.out.println("Service keys: " + map.services.keySet());
-    System.out.println("User API: " + map.services.get("user"));
-    System.out.println("Ascii (layered compact): \n" + asciiDiagram2);
-
-    assertTrue(map.services.containsKey("user"));
-    assertFalse(map.services.get("user").api.isEmpty());
-    assertTrue(map.services.get("user").api.stream()
-        .anyMatch(snippet -> snippet.contains("UserController")));
-    assertTrue(map.services.get("user").business.stream()
-        .anyMatch(snippet -> snippet.contains("UserService")));
+    String asciiDiagram = utils.generateServiceBoundary(map);
+    System.out.println("Generated ASCII Diagram:\n" + asciiDiagram);
 
 
+    assertTrue("Expected 'user' service to be present", map.services.containsKey("user"));
 
-    assertNotNull(asciiDiagram2);
-    assertFalse(asciiDiagram2.isBlank());
-    assertTrue(asciiDiagram2.contains("+---")); 
-    assertTrue(asciiDiagram2.contains("| user")); 
-    assertTrue(map.services.get("user").api.stream()
-    .anyMatch(snippet -> snippet.contains("UserController")));
-    assertTrue(map.services.get("user").business.stream()
-    .anyMatch(snippet -> snippet.contains("UserService")));
 
+    List<String> apiLayer = map.services.get("user").api;
+    List<String> businessLayer = map.services.get("user").business;
+
+    System.out.println("API Layer: " + apiLayer);
+    System.out.println("Business Layer: " + businessLayer);
+
+ 
+    assertLayerContains(apiLayer, "UserController", "API Layer");
+    assertLayerContains(businessLayer, "UserService", "Business Layer");
+
+
+    assertNotNull("Diagram should not be null", asciiDiagram);
+    assertFalse("Diagram should not be blank", asciiDiagram.isBlank());
+    assertTrue("Diagram should include boundary box", asciiDiagram.contains("+---"));
+    assertTrue("Diagram should include user service", asciiDiagram.contains(" user "));
 }
+
 
     
     @Test
@@ -106,7 +97,7 @@ public void testRelationsInDiagram() throws IOException {
     map.serviceCalls.put("user", Set.of("admin"));
     map.serviceCalls.put("admin", Set.of("mapper"));
 
-    String diagram = utils.generateVerticalDiagramWithLevelsAndArrows2(map);
+    String diagram = utils.generateServiceBoundary(map);
 
     System.out.println("Diagram with relations:\n" + diagram);
 
@@ -119,43 +110,49 @@ public void testBoundary() throws IOException {
     Map<String, String> files = Map.of(
         "service/user/UserController.java", "@RestController public class UserController {}",
         "service/user/UserService.java", "@Service public class UserService {}",
+        
         "service/order/OrderController.java", "@RestController public class OrderController { UserService userService; }",
         "common/Logger.java", "public class Logger {}",
-    "service/auth/AuthController.java", "@RestController public class AuthController {}",
-    "service/auth/AuthService.java", "@Service public class AuthService {}",
-    "service/a/AController.java", "@RestController public class AController { BService bService; }",
-    "service/a/AService.java", "@Service public class AService { BService bService; }",
-    "service/b/BController.java", "@RestController public class BController { AService aService; }",
-    "service/b/BService.java", "@Service public class BService { AService aService; }"
-
+        "service/auth/AuthController.java", "@RestController public class AuthController {}",
+        "service/auth/AuthService.java", "@Service public class AuthService {}",
+        "service/a/AController.java", "@RestController public class AController { BService bService; }",
+        "service/a/AService.java", "@Service public class AService { BService bService; }",
+        "service/b/BController.java", "@RestController public class BController { AService aService; }",
+        "service/b/BService.java", "@Service public class BService { AService aService; }"
     );
 
     List<ServiceBoundary> boundaries = utils.extractFiles(files);
     ArchitectureMap map = utils.fallback(boundaries);
 
-    System.out.println("Service Calls:");
-map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
 
+    System.out.println("Initial Service Calls:");
+    map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
 
 
     map.serviceCalls = utils.inferServiceRelations(map);
 
+    System.out.println("\nInferred Service Calls:");
+    map.serviceCalls.forEach((k, v) -> System.out.println(k + " -> " + v));
 
-    System.out.println("Ascii with Anaylze & print: \n");
-    utils.analyzeAndPrint(files);
+
+    System.out.println("\n--- Boundary Context Diagram ---");
+    utils.printServiceBoundary(files);
+
 
     assertTrue(map.services.containsKey("user"));
-    System.out.println("Artifacts in user: " + map.services.get("user").business);
-    
-    System.out.println("Snippets in order: ");
-    map.services.get("order").api.forEach(System.out::println);
-    
-    assertTrue(map.serviceCalls.containsKey("order") && map.serviceCalls.get("order").contains("user"));
+    assertTrue(map.services.get("user").business.stream()
+        .anyMatch(snippet -> snippet.contains("UserService")));
+
+    assertTrue(map.services.containsKey("order"));
+    assertTrue(map.services.get("order").api.stream()
+        .anyMatch(snippet -> snippet.contains("OrderController")));
 
 
-    
+    assertTrue(
+        map.serviceCalls.containsKey("order") && 
+        map.serviceCalls.get("order").contains("user")
+    );
 }
-
 
 
 }

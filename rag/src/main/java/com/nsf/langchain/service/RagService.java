@@ -21,6 +21,7 @@ import com.nsf.langchain.utils.GitUtils;
 import com.nsf.langchain.utils.JsonUtils;
 import com.nsf.langchain.utils.RepoUtils;
 import com.nsf.langchain.utils.ServiceBoundaryUtils;
+import com.nsf.langchain.utils.ServiceBoundaryUtils.ArchitectureMap;
 
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.io.BufferedWriter;
@@ -76,12 +78,8 @@ public class RagService {
     }
     public Report getReport(String url) throws JsonProcessingException {
         String repoId = RepoUtils.extractRepoId(url);
-        String[] parts = url.split("/");
-        String user = parts[parts.length - 2];
-        String repo = parts[parts.length - 1].replace(".git", "");
-    
+
         LocalDateTime timestamp = LocalDateTime.now();
-        String timeStr = timestamp.toString();
         String timeCsv = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss").format(timestamp);
     
         long startTime = System.currentTimeMillis();
@@ -110,12 +108,17 @@ public class RagService {
             log.error("Ingestion failed", e);
             return failedReport(repoId);
         }
+
+        ArchitectureMap map = generateBoundaryFromCodeFiles(codeFiles);
         List<BinaryTreeNode> fileNodes = gitHubApi.collectRelevantFiles(ingestRepo);
         String dependencies = safeStep("Dependency Extraction", () -> architecture.getDependencyFile(fileNodes), t -> dependencyTime[0] = t);
-        String boundary = safeStep("Service Boundary", () -> generateBoundaryFromCodeFiles(codeFiles), t -> boundaryTime[0] = t);
+        String boundary = safeStep("Service Boundary", () -> serviceBoundary.printServiceBoundary(codeFiles), t -> boundaryTime[0] = t);
         String archDiagram = safeStep("Architecture Diagram", () -> architecture.displayArchitecture(rootTree), t -> archDiagramTime[0] = t);
         List<AntiPattern> antiPatterns = jsonUtils.loadAntiPatternsJson(Paths.get("doc/msa-anti-patterns.json"));
         List<MSAPattern> patterns = jsonUtils.loadPatternsJson(Paths.get("doc/msa-patterns.json"));
+        List<String> anti = serviceBoundary.detectAntiPatterns(map);
+        antiPatterns.forEach(System.out::println);
+
 
        
         Set<String> codeMatchedPatterns = ingestRepo.patternCounts.keySet();
@@ -143,15 +146,18 @@ public class RagService {
         Map<String, Set<String>> dependencyGraph = serviceBoundary.buildDependencyGraph(services);
         List<String> issues = ServiceBoundaryUtils.analyzeDependencies(dependencyGraph);
         issues.forEach(issue -> log.warn("Dependency issue detected: {}", issue));
+    
 
+
+    String painPoints = identifyPainPoints(matchedAntiPatterns, scoringResults, issues);
 
     String analysis = safeStep("Architecture Analysis",
-        () -> generateAnalysis(repoId, dependencies, boundary, archDiagram, matchedPatterns, matchedAntiPatterns, warningsSummary, issues, scoringResults),
+        () -> generateAnalysis(repoId, map, dependencies, boundary, archDiagram, matchedPatterns, matchedAntiPatterns, warningsSummary, issues, scoringResults),
     t -> analysisTime[0] = t
-        );
+        ); 
     
         String architectureRec = safeStep("Architecture Recommendation", 
-    () -> generateArchitecture(repoId, dependencies, boundary, archDiagram, analysis, scoringResults), 
+    () -> generateArchitecture(repoId, map, dependencies, boundary, archDiagram, analysis, scoringResults, painPoints), 
     t -> architectureRecTime[0] = t);
 
 
@@ -176,12 +182,12 @@ public class RagService {
     }
     
 
-    private String generateBoundaryFromCodeFiles(Map<String, String> codeFiles) throws JsonProcessingException {
+    private ArchitectureMap generateBoundaryFromCodeFiles(Map<String, String> codeFiles) throws JsonProcessingException {
         List<ServiceBoundaryUtils.ServiceBoundary> artifacts = serviceBoundary.extractFiles(codeFiles);
         ServiceBoundaryUtils.ArchitectureMap archMap = serviceBoundary.fallback(artifacts);
         archMap.serviceCalls = serviceBoundary.inferServiceRelations(archMap);
         archMap.printLayers();
-        return serviceBoundary.generateVerticalDiagramWithLevelsAndArrows2(archMap);
+        return archMap;
     }
 
 
@@ -263,8 +269,32 @@ public class RagService {
     }
 }
 
+public String identifyPainPoints(List<String> matchedAntiPatterns, Map<String, Double> scoringResults, List<String> dependencyIssues) {
+    StringBuilder sb = new StringBuilder();
 
-public String generateAnalysis(String repoId, String dependencies, String boundary, String archDiagram, List<String> matchedPatterns, List<String> matchedAntiPatterns, String warningsSummary, List<String> dependencyIssues, Map<String, Double> scoringResults ) {
+    if (!matchedAntiPatterns.isEmpty()) {
+        sb.append("Anti-Patterns Detected:\n");
+        matchedAntiPatterns.forEach(p -> sb.append("- ").append(p).append("\n"));
+    }
+
+    if (scoringResults != null && !scoringResults.isEmpty()) {
+        sb.append("\nLow Scoring Areas:\n");
+        scoringResults.entrySet().stream()
+            .filter(e -> e.getValue() < 5.0)
+            .sorted(Map.Entry.comparingByValue())
+            .forEach(e -> sb.append(String.format("- %s: %.2f/1\n", e.getKey(), e.getValue())));
+    }
+
+    if (dependencyIssues != null && !dependencyIssues.isEmpty()) {
+        sb.append("\nDependency Issues:\n");
+        dependencyIssues.forEach(issue -> sb.append("- ").append(issue).append("\n"));
+    }
+
+    return sb.toString().isBlank() ? "No major pain points detected." : sb.toString();
+}
+
+
+public String generateAnalysis(String repoId, ArchitectureMap map, String dependencies, String boundary, String archDiagram, List<String> matchedPatterns, List<String> matchedAntiPatterns, String warningsSummary, List<String> dependencyIssues, Map<String, Double> scoringResults ) {
     String filter = "repo == '" + repoId + "'";
     List<Scoring> criteria = jsonUtils.loadScoringJson(Paths.get("doc/msa-scoring.json"));
     List<MSAPattern> allPatterns = jsonUtils.loadPatternsJson(Paths.get("doc/msa-patterns.json"));
@@ -356,7 +386,7 @@ for (Scoring criterion : criteria) {
     double weightedScore = normalizedWeight * matchScore;
     totalWeightedScore += weightedScore;
 
-    individualScores.add(String.format("%s: %.1f/10 (weighted: %.2f)", criterion.getName(), matchScore, weightedScore));
+    individualScores.add(String.format("%s: %.1f/1 (weighted: %.2f)", criterion.getName(), matchScore, weightedScore));
 }
 
 String matchedCriteriaSummary = criteria.stream()
@@ -435,11 +465,11 @@ if (scoringResults != null && !scoringResults.isEmpty()) {
                 patternSummary, antiPatternSummary, dependencyIssuesSummary, warningsSummary, matchedCriteriaSummary);
         
         String evaluationSummary = scoringResults.entrySet().stream()
-    .map(entry -> String.format("- %s: %.2f/10", entry.getKey(), entry.getValue()))
+    .map(entry -> String.format("- %s: %.2f/1", entry.getKey(), entry.getValue()))
     .collect(Collectors.joining("\n"));
 
 String overall = String.format("""
-    **Overall Score:** %.2f/10
+    **Overall Score:** %.2f/1
     """, scoringResults.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0));
 
 
@@ -468,9 +498,7 @@ String overall = String.format("""
         new UserMessage(contextString)
     ));
 
-    long start = System.currentTimeMillis();
     ChatResponse response = chatModel.call(prompt);
-    log.info("Architecture analysis completed in {}ms", System.currentTimeMillis() - start);
     String analysisText = response.getResult().getOutput().getText();
 
 StringBuilder debugInfo = new StringBuilder();
@@ -493,71 +521,148 @@ return analysisText + debugInfo.toString();
 
  
     
-    public String generateArchitecture(String repoId, String dependencies, String boundary, String archDiagram, String analysis, Map<String, Double> scoringResults) {
+    public String generateArchitecture(String repoId, ArchitectureMap map, String dependencies, String boundary, String archDiagram, String analysis, Map<String, Double> scoringResults, String painPoints) {
         StringBuilder scoringSummary = new StringBuilder();
         if (scoringResults != null && !scoringResults.isEmpty()) {
             scoringSummary.append("Scoring Results:\n");
             scoringResults.forEach((key, score) -> scoringSummary.append(String.format("- %s: %.2f\n", key, score)));
         }
+
+        
+
     
         String contextString = """
             Repository ID: %s
-    
-            Dependency Information:
+            
+            --- Repositoty Files ---
             %s
-    
-            Identified Service Boundaries:
+            --- Dependency Summary ---
             %s
-    
-            Current Architecture Diagram:
+            
+            --- Identified Service Boundaries ---
             %s
-    
-            Architectural Analysis:
+            
+            --- Current Architecture Diagram ---
             %s
-    
+            
+            --- Architectural Analysis ---
             %s
-    
-            Based on this, refactor the codebase using an ASCII tree diagram.
-    
-            Use:
-            - '├──' and '└──' for tree structure
-            - API Gateway, Config Server, Event Bus, Discovery Server where appropriate
-            - Group related services logically
-            - Mark event producers and consumers
-            - Optimize modularity, resilience, and clarity
-        """.formatted(repoId, dependencies, boundary, archDiagram, analysis, scoringSummary);
+            
+            --- Scoring Results ---
+            %s
+
+            --- Pain Points ---
+            %s
+            
+            --- Objective ---
+            Design a **refactored target architecture** for the codebase described above.
+            
+            --- Instructions ---
+            1. Begin with a complete **ASCII architecture tree diagram**, using:
+               - `├──`, `└──`, and indentation for structure
+               - Logical groupings (e.g., gateways, shared libs, domain services)
+               - Nodes like: `API Gateway`, `Config Server`, `Event Bus`, `Discovery Server`, `Monitoring`, etc.
+               - Mark event producers (`(pub)`) and consumers (`(sub)`) where applicable
+            
+            2. After the diagram, provide a concise explanation with these sections:
+               - **Changes Made**: What was added/removed/moved and why
+               - **Patterns Applied**: e.g., Smart Endpoints, Gateway Routing, Pub/Sub, Bulkhead
+               - **Scoring Influence**: How the low/high scores informed restructuring decisions
+               - **Scalability & Resilience**: Justify improvements made to support these concerns
+               - **Domain Alignment**: Note how boundaries were clarified or improved
+               Include a breakdown of:
+                - **Pain Points**: What architectural or design issues the refactor addresses
+            Be specific. Avoid generic fluff.
+            """
+            .formatted(repoId, map, dependencies, boundary, archDiagram, analysis, scoringSummary, painPoints);
+            
     
         Prompt prompt = new Prompt(List.of(
             new SystemMessage("""
-                You are a senior microservices architect.
-    
-                Your job is to provide a refactored architecture diagram and explanation based on the given context and scoring results.
-    
-                First, provide the ASCII tree diagram.
-    
-                Then, explain:
-                - What changed and why
-                - Patterns applied
-                - How scoring influenced the design decisions
+            You are a senior microservices architect.
+
+            Your job:
+            1. Generate a clear **ASCII diagram** of the full refactored architecture
+                2. Explain your choices across key architectural dimensions (modularity, boundaries, fault isolation, observability)
+
+            Return output in **this format**:
+
             """),
             new UserMessage(contextString)
         ));
     
-        long start = System.currentTimeMillis();
-        ChatResponse response = chatModel.call(prompt);
-        String output = response.getResult().getOutput().getText();
-        log.info("Architecture refactoring completed in {}ms", System.currentTimeMillis() - start);
     
-        if (!output.contains("├──") && !output.contains("└──")) {
-            log.warn("Expected ASCII diagram not found in architecture output:\n{}", output);
-        }
-    
-        return output;
+        AtomicReference<StringBuilder> output = new AtomicReference<>(new StringBuilder());
+
+        chatModel.stream(prompt)
+        .doOnNext(chunk -> output.get().append(chunk.getResult().getOutput().getText()))
+    .doOnError(e -> log.error("Streaming error: ", e))
+    .doOnComplete(() -> log.info("Streaming complete."))
+    .blockLast();
+
+        String finalOutput = output.get().toString();
+
+        String afterDiagram = extractDiagramFromResponse(finalOutput);
+    String diff = generateDiffSummary(archDiagram, afterDiagram);
+log.info("Architecture diff:\n{}", diff);
+
+    if (!afterDiagram.contains("├──") && !afterDiagram.contains("└──")) {
+        log.warn("Expected ASCII diagram not found in architecture output:\n{}", finalOutput);
+        }   
+
+        return finalOutput;
     }
     
     
+
+    public static String extractDiagramFromResponse(String response) {
+        String[] lines = response.split("\n");
+        StringBuilder diagram = new StringBuilder();
+    
+        boolean inDiagram = false;
+        for (String line : lines) {
+            if (line.trim().startsWith("├──") || line.trim().startsWith("└──")) {
+                inDiagram = true;
+            }
+    
+            if (inDiagram) {
+                if (line.trim().isEmpty()) break; 
+                diagram.append(line).append("\n");
+            }
+        }
+    
+        return diagram.toString().trim();
+    }
+    
    
 
+    public String generateDiffSummary(String before, String after) {
+        List<String> beforeLines = List.of(before.split("\n"));
+        List<String> afterLines = List.of(after.split("\n"));
+    
+        Set<String> beforeSet = new HashSet<>(beforeLines);
+        Set<String> afterSet = new HashSet<>(afterLines);
+    
+        List<String> added = afterLines.stream().filter(l -> !beforeSet.contains(l)).toList();
+        List<String> removed = beforeLines.stream().filter(l -> !afterSet.contains(l)).toList();
+    
+        StringBuilder diff = new StringBuilder("\n--- Architecture Changes Summary ---\n");
+    
+        if (!added.isEmpty()) {
+            diff.append("➕ Added:\n");
+            added.forEach(line -> diff.append("  + ").append(line).append("\n"));
+        }
+        if (!removed.isEmpty()) {
+            diff.append("➖ Removed:\n");
+            removed.forEach(line -> diff.append("  - ").append(line).append("\n"));
+        }
+        if (added.isEmpty() && removed.isEmpty()) {
+            diff.append("No structural changes detected.\n");
+        }
+    
+        return diff.toString();
+    }
+    
     
  
     
@@ -628,50 +733,7 @@ return analysisText + debugInfo.toString();
         return response.getResult().getOutput().getText();
     }
 
-    public String testPromptOnly(String type, String repoId, String dependencies, String boundary, String archDiagram, String analysis) {
-        String promptText = switch (type) {
-            case "analysis" -> generateAnalysisPromptOnly(repoId, dependencies, boundary, archDiagram);
-            case "architecture" -> generateArchitecturePromptOnly(repoId, dependencies, boundary, archDiagram, analysis);
-            default -> throw new IllegalArgumentException("Unknown prompt type: " + type);
-        };
-        return promptText;
-    }
 
-    public String generateAnalysisPromptOnly(String repoId, String dependencies, String boundary, String archDiagram) {
-    
-        return """
-            Repository architecture context: (mocked)
-    
-            Dependencies:
-            %s
-    
-            System Boundaries:
-            %s
-    
-            Architecture Diagram:
-            %s
-            """.formatted(dependencies, boundary, archDiagram);
-    }
-    
-    public String generateArchitecturePromptOnly(String repoId, String dependencies, String boundary, String archDiagram, String analysis) {
-        return """
-            Repository ID: %s
-    
-            Dependency Information:
-            %s
-    
-            Identified Service Boundaries:
-            %s
-    
-            Current Architecture Diagram:
-            %s
-    
-            Architectural Analysis:
-            %s
-    
-            Based on this, refactor the codebase to improve clarity, separation of concerns, and modern best practices.
-            """.formatted(repoId, dependencies, boundary, archDiagram, analysis);
-    }
     
     public List<String> matchGlobalArchitecturePatterns(BinaryTreeNode root, List<AntiPattern> antiPatterns, String dependencies, String archDiagram, String boundaries) {
         String lowerDeps = dependencies.toLowerCase();

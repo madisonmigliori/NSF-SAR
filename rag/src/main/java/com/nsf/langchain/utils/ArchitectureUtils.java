@@ -636,12 +636,6 @@ public String getDependencyFile(List<BinaryTreeNode> fileNodes) throws Exception
     }
 }
 
-    public Object getDependencyFiles(List<BinaryTreeNode> fileNodes) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getDependencyFiles'");
-    }
-
-
-
+  
 
 }

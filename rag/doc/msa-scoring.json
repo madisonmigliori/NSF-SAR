@@ -4,7 +4,7 @@
       "name": "Scalability",
       "description": "Each microservice should operate independently, enabling individual components to be scaled without affecting the entire system.",
       "guidance": "Flag files with layers of dependencies and  function dependencies. Look for resilience patterns if implemented. Looking for configuration servers, service discovery, and api gateways.",
-      "patterns": ["Proxy", "Sequential Convoy", "Service Mesh", "Domain-Driven Design", "Transaction", "Publish/Subscribe", "Strangler Fig", "Event-Driven Communication", "Asynchronous Communication", "Smart endpoint, dumb pipes", "Message Broker", "Token-Based Authentication", "Event-Driven Autoscaling", "Auto Scaling", "Valet Key", "Priority Queue", "Gateways", "Service Discovery", "Client Side UI Composition", "Database Per Service", "Data Sharding", "Chain of Responsibility", "Command Query Responsibility Segregation", "Polyglot Persistence"],
+      "patterns": ["Proxy", "Sequential Convoy", "Service Mesh", "Domain-Driven Design", "Transaction", "Publisher/Subscriber", "Strangler Fig", "Event-Driven Communication", "Asynchronous Communication", "Smart endpoint, dumb pipes", "Message Broker", "Token-Based Authentication", "Event-Driven Autoscaling", "Auto Scaling", "Valet Key", "Priority Queue", "Gateways", "Service Discovery", "Client Side UI Composition", "Database Per Service", "Data Sharding", "Chain of Responsibility", "Command Query Responsibility Segregation", "Polyglot Persistence"],
       "weight": 0.25
     },
     {
@@ -18,7 +18,7 @@
       "name": "Resilience",
       "description": "Failure in one service should not impact others, ensuring the system continues to operate under partial failure. Identify any vulnerabilities.",
       "guidance": "Look for resilience patterns",
-      "patterns": ["Circuit Breaker", "Retry", "fallbacks", "bulkhead", "Load Balancer", "isolated service deployment", "sidecar", "Service Mesh", "Anti-corruption Layer", "Correlation IDs", "Metrics Collections and Monitoring"," Log Aggregation","Asynchronous messaging", "Distributed Tracing", "Consumer-Driven Contracts", "Shadow Deployment", "Retry", "Message Queue", "Competing Consumers", "Schedule Agent Supervisor", "Process Manager","Timeout", "Priority Queue", "API Gateways", "Load Leveling", "Throttling", "Fallback", "Fail Fast", "Health Check"],
+      "patterns": ["Circuit Breaker", "Retry", "Bulkhead", "Load Balancer", "isolated service deployment", "Sidecar", "Service Mesh", "Anti-corruption Layer", "Correlation IDs", "Metrics Collections and Monitoring"," Log Aggregation","Asynchronous messaging", "Distributed Tracing", "Consumer-Driven Contracts", "Shadow Deployment", "Retry", "Message Queue", "Competing Consumers", "Schedule Agent Supervisor", "Process Manager","Timeout", "Priority Queue", "API Gateways", "Load Leveling", "Throttling", "Fallback", "Fail Fast", "Health Check"],
       "weight": 0.2
     },
     {

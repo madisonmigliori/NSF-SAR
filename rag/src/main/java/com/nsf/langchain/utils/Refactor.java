@@ -308,7 +308,6 @@ ChatResponse response = chatModel.call(prompt);
         }
     
      
-        // ... inside your generateTestImprovement method, replace or append to the tech stack block:
 
 if (lowerStack.contains("java") || lowerStack.contains("spring")) {
     sb.append("- Use **JUnit 5** for unit/integration tests, **Mockito** for mocks, **Testcontainers** for containers.\n");

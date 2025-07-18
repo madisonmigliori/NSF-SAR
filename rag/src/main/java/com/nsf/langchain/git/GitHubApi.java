@@ -8,6 +8,8 @@ import com.nsf.langchain.model.MSAPattern;
 import com.nsf.langchain.model.Scoring;
 import com.nsf.langchain.utils.ArchitectureUtils;
 import com.nsf.langchain.utils.JsonUtils;
+import com.nsf.langchain.utils.ServiceBoundaryUtils;
+import com.nsf.langchain.utils.ServiceBoundaryUtils.ArchitectureMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +61,7 @@ public class GitHubApi {
     public GitHubApi() {
         this.token = "";
         this.architectureUtils = null;
+        this.serviceBoundaryUtils = null;
     }
 
 //     @Autowired
@@ -75,16 +78,19 @@ public class GitHubApi {
 
 private final String token;
 private final ArchitectureUtils architectureUtils;
+private final ServiceBoundaryUtils serviceBoundaryUtils;
 
 @Autowired
-public GitHubApi(ArchitectureUtils architectureUtils) {
+public GitHubApi(ArchitectureUtils architectureUtils, ServiceBoundaryUtils serviceBoundaryUtils) {
     String token = System.getenv("GITHUB_PAT");
     if (token == null || token.isBlank()) {
-        throw new IllegalStateException("GITHUB_PAT env variable not set");
+        throw new IllegalStateException("GITHUB_PAT token not provided");
     }
     this.token = token;
     this.architectureUtils = architectureUtils;
+    this.serviceBoundaryUtils = serviceBoundaryUtils;
 }
+
 
 
     private List<AntiPattern> antiPatterns;
@@ -212,6 +218,33 @@ public GitHubApi(ArchitectureUtils architectureUtils) {
 
         String fullProjectText = fileNodes.stream().map(n -> n.content).collect(Collectors.joining("\n"));
 
+        Map<String, String> fileMap = new HashMap<>();
+        for (BinaryTreeNode node : fileNodes) {
+        fileMap.put(node.name, node.content);
+        }
+
+        
+        ArchitectureMap map = null;
+List<String> architectureWarnings = new ArrayList<>();
+try {
+    map = serviceBoundaryUtils.fallback(serviceBoundaryUtils.extractFiles(fileMap));
+    map.serviceCalls = serviceBoundaryUtils.inferServiceRelations(map);
+    architectureWarnings = serviceBoundaryUtils.detectAntiPatterns(map);
+    log.info("Architecture Anti-patterns found: {}", architectureWarnings);
+} catch (Exception e) {
+    log.error("Failed to perform architecture-level analysis: {}", e.getMessage());
+}
+
+    Map<String, List<String>> fileToWarnings = new HashMap<>();
+    for (String warning : architectureWarnings) {
+    for (String file : fileMap.keySet()) {
+        if (warning.toLowerCase().contains(file.toLowerCase().replace(".java", ""))) {
+            fileToWarnings.computeIfAbsent(file, k -> new ArrayList<>()).add(warning);
+        }
+    }
+}
+        
+
         String dependencies = "";
     
 
@@ -241,6 +274,17 @@ public GitHubApi(ArchitectureUtils architectureUtils) {
                     log.info("Anti-pattern '{}' matched in file '{}'. Snippet: '{}'", ap.getName(), name, snippet);
                 }
             }
+
+            if (fileToWarnings.containsKey(name)) {
+                for (String warning : fileToWarnings.get(name)) {
+                    fileNode.antiPatterns.add(warning);
+                    allWarnings.add(warning);
+                }
+            }
+
+                
+
+            
 
             for (MSAPattern p : patternsList) {
                 String snippet = p.getMatchSnippetDep(content, dependencies);
@@ -294,7 +338,6 @@ public GitHubApi(ArchitectureUtils architectureUtils) {
         Map<String, Integer> matchesPerCriteria = new HashMap<>();
         Map<String, Double> scorePerCriteria = new HashMap<>();
     
-        // Aggregate all detected patterns (case-insensitive)
         Set<String> detectedPatterns = new HashSet<>();
         for (BinaryTreeNode fileNode : fileNodes) {
             fileNode.patternCounts.keySet().forEach(p -> detectedPatterns.add(p.toLowerCase()));
@@ -392,8 +435,6 @@ public GitHubApi(ArchitectureUtils architectureUtils) {
             }
         }
     }
-
-    
 
 
   

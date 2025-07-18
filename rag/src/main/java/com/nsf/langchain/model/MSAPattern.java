@@ -29,22 +29,17 @@ public class MSAPattern {
     public void initDetectionRegex() {
         switch (name.toLowerCase()) { 
             case "proxy":
-            detectionRegex = Pattern.compile("\\b(proxy service|intermediary service|routing layer|consul|zookeeper|wso2)\\b", Pattern.CASE_INSENSITIVE);
-            break;
-
+                detectionRegex = Pattern.compile("\\b(proxy service|intermediary service|routing layer|consul|zookeeper|wso2)\\b", Pattern.CASE_INSENSITIVE);
+                break;
             case "sidecar":
-            detectionRegex = Pattern.compile("\\b(sidecar|envoy|istio|netflix prana|app mesh|sidecar proxy|sidecar container)\\b", Pattern.CASE_INSENSITIVE);
-            break;
-
+                detectionRegex = Pattern.compile("\\b(sidecar|envoy|istio|netflix prana|app mesh|sidecar proxy|sidecar container)\\b", Pattern.CASE_INSENSITIVE);
+                break;
             case "bulkhead":
-            detectionRegex = Pattern.compile("\\b(bulkhead|isolated thread pool|separate connection pool|hystrix)\\b", Pattern.CASE_INSENSITIVE);
-            break;
-
+                detectionRegex = Pattern.compile("\\b(bulkhead|isolated thread pool|separate connection pool|hystrix)\\b", Pattern.CASE_INSENSITIVE);
+                break;
             case "strangler fig":
-            detectionRegex = Pattern.compile("\\b(strangler fig|incremental migration|conditional routing|legacy replacement|monolith decomposition)\\b", Pattern.CASE_INSENSITIVE);
-            break;
-
-
+                detectionRegex = Pattern.compile("\\b(strangler fig|incremental migration|conditional routing|legacy replacement|monolith decomposition)\\b", Pattern.CASE_INSENSITIVE);
+                break;
             case "shadow deployment":
                 detectionRegex = Pattern.compile("\\b(shadow deployment|traffic mirroring|load balancer|istio|route 53)\\b", Pattern.CASE_INSENSITIVE);
                 break;
