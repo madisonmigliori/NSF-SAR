@@ -43,6 +43,7 @@ public class ChatController {
     //     }
     // }
 
+
     @PostMapping("/analyze")
 @Operation(
     summary = "Analyze a repository",
@@ -50,7 +51,9 @@ public class ChatController {
 )
 public ResponseEntity<Report> analyze(@RequestBody Repo gitUrl) {
     try {
-        Report report = ragService.getReport(gitUrl.getUrl());
+        // Report report = ragService.getReport(gitUrl.getUrl());
+        log.info("********Calling NEW REPORT******");
+        Report report = ragService.newReport(gitUrl.getUrl());
         return ResponseEntity.ok(report);
     } catch (Exception e) {
         e.printStackTrace();
@@ -60,8 +63,8 @@ public ResponseEntity<Report> analyze(@RequestBody Repo gitUrl) {
                 "Error extracting dependencies.",
                 "Error running analysis.",
                 "Error displaying architecture.",
-                "Error providing recommendations.",
-                "Error identifying service boundary.",
+                // "Error providing recommendations.",
+                // "Error identifying service boundary.",
                 "Error displaying refactored architecture"
             )
         );

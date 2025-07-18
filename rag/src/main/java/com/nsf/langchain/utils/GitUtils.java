@@ -56,53 +56,53 @@ public class GitUtils {
         }
     }
 
-    public BinaryTreeNode gitHubTree(String gitUrl){
-        String[] parts = gitUrl.split("/");
-            String user = parts[parts.length - 2];
-            String repo = parts[parts.length - 1].replace(".git", "");
+    // public BinaryTreeNode gitHubTree(String gitUrl){
+    //     String[] parts = gitUrl.split("/");
+    //         String user = parts[parts.length - 2];
+    //         String repo = parts[parts.length - 1].replace(".git", "");
 
-        String apiUrl = String.format("https://api.github.com/repos/%s/%s/contents",user, repo);
+    //     String apiUrl = String.format("https://api.github.com/repos/%s/%s/contents",user, repo);
         
-        BinaryTreeNode root = new BinaryTreeNode(repo, "directory", gitUrl);
-        fetchContents(apiUrl, root);
-        return root;
+    //     BinaryTreeNode root = new BinaryTreeNode(repo, "directory", gitUrl);
+    //     fetchContents(apiUrl, root);
+    //     return root;
 
-    }
+    // }
 
-    public void fetchContents(String apiUrl, BinaryTreeNode root) {
-        try {
+    // public void fetchContents(String apiUrl, BinaryTreeNode root) {
+    //     try {
 
-            String token = System.getenv("GITHUB_PAT");
-            if (token == null || token.isEmpty()) {
-                throw new IllegalStateException("GitHub token not found in environment variable 'GITHUB_PAT'");
-            }
-            System.out.println("Using GitHub token: " + (token != null ? "YES" : "NO"));
+    //         String token = System.getenv("GITHUB_PAT");
+    //         if (token == null || token.isEmpty()) {
+    //             throw new IllegalStateException("GitHub token not found in environment variable 'GITHUB_PAT'");
+    //         }
+    //         System.out.println("Using GitHub token: " + (token != null ? "YES" : "NO"));
         
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Accept", "application/vnd.github.v3+json");
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
+    //     HttpHeaders headers = new HttpHeaders();
+    //     headers.set("Accept", "application/vnd.github.v3+json");
+    //     HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<List<Map<String, Object>>> response =
-                restTemplate.exchange(apiUrl, HttpMethod.GET, entity, new ParameterizedTypeReference<>() {});
+    //     ResponseEntity<List<Map<String, Object>>> response =
+    //             restTemplate.exchange(apiUrl, HttpMethod.GET, entity, new ParameterizedTypeReference<>() {});
 
-        for (Map<String, Object> item : response.getBody()) {
-            String name = (String) item.get("name");
-            String type = (String) item.get("type"); 
-            String url = (String) item.get("url");
+    //     for (Map<String, Object> item : response.getBody()) {
+    //         String name = (String) item.get("name");
+    //         String type = (String) item.get("type"); 
+    //         String url = (String) item.get("url");
 
-            BinaryTreeNode child = new BinaryTreeNode(name, type, url);
-            root.children.add(child);
+    //         BinaryTreeNode child = new BinaryTreeNode(name, type, url);
+    //         root.children.add(child);
 
-            if ("dir".equals(type)) {
-                fetchContents(url, child); 
-            }
-        }
-    } catch (Exception e) {
-        System.err.println("Failed to fetch: " + apiUrl);
-        e.printStackTrace();
-    }
+    //         if ("dir".equals(type)) {
+    //             fetchContents(url, child); 
+    //         }
+    //     }
+    // } catch (Exception e) {
+    //     System.err.println("Failed to fetch: " + apiUrl);
+    //     e.printStackTrace();
+    // }
 
-    }
+    // }
 
     
 

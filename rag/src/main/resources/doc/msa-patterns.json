@@ -291,31 +291,36 @@
             "name": "Fail Fast",
             "description": "Immediately terminates an operation when failure is expected or detected, conserving system resources and enabling fast recovery.",
             "advantage": "Improves system responsiveness and avoids cascading delays.",
-            "disadvantage": "May result in false negatives if not carefully calibrated. Requires accurate failure prediction."
+            "disadvantage": "May result in false negatives if not carefully calibrated. Requires accurate failure prediction.", 
+            "common implementations": "n/a"
         },
         {
             "name": "Fallback",
             "description": "Provides default or alternative behavior when a service call fails, maintaining user experience and preventing full failure.",
             "advantage": "Supports graceful degradation and ensures some level of service availability.",
-            "disadvantage": "Fallback data may be outdated or limited in functionality. Increases complexity in design."
+            "disadvantage": "Fallback data may be outdated or limited in functionality. Increases complexity in design.",
+            "common implementations": "n/a"
         },
         {
             "name": "Throttling",
             "description": "Limits the number of requests to a service to avoid overload and maintain availability during peak traffic or attack scenarios.",
             "advantage": "Protects services from overload and preserves performance under stress.",
-            "disadvantage": "May delay or reject valid client requests. Needs intelligent limit-setting and user feedback mechanisms."
+            "disadvantage": "May delay or reject valid client requests. Needs intelligent limit-setting and user feedback mechanisms.",
+            "common implementations": "n/a"
         },
         {
             "name": "Load Leveling",
             "description": "Introduces a queue between request producer and consumer to buffer bursts and stabilize load over time.",
             "advantage": "Prevents system crashes from sudden traffic spikes and enables smoother load distribution.",
-            "disadvantage": "Adds latency and operational complexity. Requires queue management and potential scaling of consumers."
+            "disadvantage": "Adds latency and operational complexity. Requires queue management and potential scaling of consumers.",
+            "common implementations": "n/a"
         },
         {
             "name": "Priority Queue",
             "description": "Extends load leveling by assigning priority levels to requests, ensuring critical tasks are processed before less important ones.",
             "advantage": "Improves responsiveness for critical operations in resource-constrained scenarios.",
-            "disadvantage": "Risk of starvation for low-priority requests. Requires clear and consistent prioritization logic."
+            "disadvantage": "Risk of starvation for low-priority requests. Requires clear and consistent prioritization logic.",
+            "common implementations": "n/a"
         },
         {
             "name": "Timeout",
@@ -479,105 +484,255 @@
             "common implementations": "Azure Service Bus sessions, AWS SQS FIFO with message group ID, Kafka with partition keys and ordering guarantees"
         }
     ],
-    "anti-patterns": [
-        {
-            "name": "ESB Usage",
-            "description": "Use of an Enterprise Service Bus (ESB) can create a single point of failure and increase coupling, violating microservice independence.",
-            "impact": [
-                "High Coupling",
-                "Single Point of Failure"
-            ],
-            "severity": "High"
-        },
-        {
-            "name": "Too Many Standards",
-            "description": "Multiple frameworks or inconsistent standards across teams reduce maintainability and coherence.",
-            "impact": [
-                "Low Maintainability",
-                "Reduced Developer Efficiency"
-            ],
-            "severity": "Medium"
-        },
-        {
-            "name": "Wrong Cuts",
-            "description": "Splitting services by technical layers (e.g., data/business/presentation) rather than by business domain boundaries.",
-            "impact": [
-                "Poor Service Cohesion",
-                "Increased Inter-service Communication"
-            ],
-            "severity": "High"
-        },
-        {
-            "name": "Not Having an API Gateway",
-            "description": "Lack of an API Gateway leads to uncontrolled direct communication among services, especially in large systems.",
-            "impact": [
-                "Security Risks",
-                "Scalability Issues"
-            ],
-            "severity": "Medium"
-        },
-        {
-            "name": "Hard-Coded Endpoints",
-            "description": "Using hardcoded IPs or ports makes services brittle to infrastructure changes and reduces scalability.",
-            "impact": [
-                "Low Flexibility",
-                "Deployment Challenges"
-            ],
-            "severity": "High"
-        },
-        {
-            "name": "API Versioning",
-            "description": "Lack of API versioning creates difficulties in managing backward compatibility.",
-            "impact": [
-                "Deployment Risks",
-                "Service Instability"
-            ],
-            "severity": "Medium"
-        },
-        {
-            "name": "Microservice Greedy",
-            "description": "Creating microservices for every feature leads to excessive fragmentation and overhead.",
-            "impact": [
-                "Overhead",
-                "Reduced Performance"
-            ],
-            "severity": "Medium"
-        },
-        {
-            "name": "Shared Persistency",
-            "description": "Two or more services sharing the same database breaks data autonomy.",
-            "impact": [
-                "Data Coupling",
-                "Violation of Service Boundaries"
-            ],
-            "severity": "High"
-        },
-        {
-            "name": "Inappropriate Service Intimacy",
-            "description": "One service accessing private data of another breaks encapsulation.",
-            "impact": [
-                "Security Risks",
-                "Tight Coupling"
-            ],
-            "severity": "High"
-        },
-        {
-            "name": "Shared Libraries",
-            "description": "Tightly coupling microservices via common libraries increases fragility and change ripple.",
-            "impact": [
-                "Coupling",
-                "Low Modularity"
-            ],
-            "severity": "Medium"
-        },
-        {
-            "name": "Cyclic Dependency",
-            "description": "Cyclic service calls increase complexity and hinder maintainability.",
-            "impact": [
-                "Complex Call Chains",
-                "Debugging Difficulty"
-            ],
-            "severity": "High"
-        }
-    ]
+"anti-patterns": [
+    {
+        "name": "ESB Usage",
+        "description": "Use of an Enterprise Service Bus (ESB) can create a single point of failure and increase coupling, violating microservice independence.",
+        "impact": ["High Coupling", "Single Point of Failure"],
+        "severity": "High",
+        "guidance": "Check for centralized message brokers that all services depend on. Review architecture diagrams and identify any central integration points acting as hubs."
+    },
+    {
+        "name": "Too Many Standards",
+        "description": "Multiple frameworks or inconsistent standards across teams reduce maintainability and coherence.",
+        "impact": ["Low Maintainability", "Reduced Developer Efficiency"],
+        "severity": "Medium",
+        "guidance": "Review tech stack usage across services. Look for variation in frameworks, logging, configuration, or communication protocols."
+    },
+    {
+        "name": "Wrong Cuts",
+        "description": "Splitting services by technical layers rather than by business domain boundaries.",
+        "impact": ["Poor Service Cohesion", "Increased Inter-service Communication"],
+        "severity": "High",
+        "guidance": "Analyze service responsibilities. If services are named after technical functions (e.g., `auth-service`, `data-service`) rather than business functions, it's a red flag."
+    },
+    {
+        "name": "Not Having an API Gateway",
+        "description": "Lack of an API Gateway leads to uncontrolled direct communication among services, especially in large systems.",
+        "impact": ["Security Risks", "Scalability Issues"],
+        "severity": "Medium",
+        "guidance": "Examine ingress patterns. If each service is directly exposed to clients or external systems, a gateway might be missing."
+    },
+    {
+        "name": "Hard-Coded Endpoints",
+        "description": "Using hardcoded IPs or ports makes services brittle to infrastructure changes and reduces scalability.",
+        "impact": ["Low Flexibility", "Deployment Challenges"],
+        "severity": "High",
+        "guidance": "Scan source code for IP addresses or fixed port numbers in configuration files or service calls."
+    },
+    {
+        "name": "API Versioning",
+        "description": "Lack of API versioning creates difficulties in managing backward compatibility.",
+        "impact": ["Deployment Risks", "Service Instability"],
+        "severity": "Medium",
+        "guidance": "Inspect API endpoint URIs. Absence of versioning in URLs or headers (e.g., `/api/v1/`) may indicate this issue."
+    },
+    {
+        "name": "Microservice Greedy",
+        "description": "Creating microservices for every feature leads to excessive fragmentation and overhead.",
+        "impact": ["Overhead", "Reduced Performance"],
+        "severity": "Medium",
+        "guidance": "Count the number of services and assess their responsibilities. Services with very narrow or trivial scopes may signal over-fragmentation."
+    },
+    {
+        "name": "Inappropriate Service Intimacy",
+        "description": "One service accessing private data of another breaks encapsulation.",
+        "impact": ["Security Risks", "Tight Coupling"],
+        "severity": "High",
+        "guidance": "Look for direct database access between services or APIs exposing internal implementation details."
+    },
+    {
+        "name": "Shared Libraries",
+        "description": "Tightly coupling microservices via common libraries increases fragility and change ripple.",
+        "impact": ["Coupling", "Low Modularity"],
+        "severity": "Medium",
+        "guidance": "Audit shared dependencies. If multiple services depend on the same internal libraries, assess how often updates to the library force changes elsewhere."
+    },
+    {
+        "name": "Cyclic Dependency",
+        "description": "Cyclic service calls increase complexity and hinder maintainability.",
+        "impact": ["Complex Call Chains", "Debugging Difficulty"],
+        "severity": "High",
+        "guidance": "Use call graph analysis tools to detect circular dependencies in service communication."
+    },
+    {
+        "name": "Distributed Monolith",
+        "description": "A distributed system where services depend on each other for every operation, preventing independent deployment and scaling.",
+        "impact": ["Poor Fault Isolation", "Deployment Fragility", "Limited Scalability", "Tightly Coupled Deployments"],
+        "severity": "High",
+        "guidance": "Check if services fail when others are unavailable. Look for tight synchronous communication and mandatory cross-service calls."
+    },
+    {
+        "name": "Over-Microservices",
+        "description": "The system is broken into too many small services, increasing operational complexity and coordination cost.",
+        "impact": ["High Operational Overhead", "Difficult Maintenance"],
+        "severity": "Medium",
+        "guidance": "Count microservices and compare to team size. Excessive service count with overlapping responsibilities is a clue."
+    },
+    {
+        "name": "Violating Single Responsibility",
+        "description": "Services handle multiple, unrelated concerns, leading to entangled logic and poor separation of concerns.",
+        "impact": ["Code Complexity", "Difficult Refactoring"],
+        "severity": "Medium",
+        "guidance": "Inspect service modules for unrelated functionality. Services that handle both user management and payments, for example, are problematic."
+    },
+    {
+        "name": "Spaghetti Architecture",
+        "description": "Lack of clear architecture and service boundaries leads to tangled dependencies and unmanaged interactions.",
+        "impact": ["High Coupling", "Low Maintainability"],
+        "severity": "High",
+        "guidance": "Create a service dependency graph. If it’s densely connected without modular clusters, spaghetti architecture may be present."
+    },
+    {
+        "name": "Distributed Data Inconsistency",
+        "description": "Improper data management across services causes eventual consistency problems and integrity issues.",
+        "impact": ["Data Integrity Risks", "Complex Debugging"],
+        "severity": "High",
+        "guidance": "Review data ownership per service. Look for redundant data or missing event-driven synchronization mechanisms."
+    },
+    {
+        "name": "Tight Coupling",
+        "description": "Services are highly dependent on each other’s internal structure, making changes risky and deployment slow.",
+        "impact": ["Low Flexibility", "Deployment Bottlenecks"],
+        "severity": "High",
+        "guidance": "Check for services that must be deployed together. If interface changes require coordinated updates, coupling is too tight."
+    },
+    {
+        "name": "Ignoring Human Costs",
+        "description": "Failing to account for team skillsets, communication overhead, or cognitive load in the design of microservices.",
+        "impact": ["Team Burnout", "Onboarding Difficulties"],
+        "severity": "Medium",
+        "guidance": "Assess team structure vs. service complexity. A large number of services relative to team size is a concern."
+    },
+    {
+        "name": "Monolithic Mindset in Microservices",
+        "description": "Developers implement microservices using monolithic patterns, creating tightly coupled services with shared dependencies that lack independence.",
+        "impact": ["Lack of Service Autonomy", "Deployment and Scaling Complexity", "Reduced Agility"],
+        "severity": "High",
+        "guidance": "Look for centralized databases, shared state, or services requiring full-system deployment. These are signs of monolithic thinking."
+    },
+    {
+        "name": "Data Monolith",
+        "description": "Multiple microservices share a centralized database, resulting in tight data coupling and difficulties in achieving service independence.",
+        "impact": ["Data Coupling", "Inconsistencies and Integrity Issues", "Scalability Bottlenecks"],
+        "severity": "High",
+        "guidance": "Inspect database usage. If multiple services connect to and manipulate the same database schema, it’s a red flag."
+    },
+    {
+        "name": "Chatty Communication",
+        "description": "Microservices communicate too frequently with fine-grained messages, increasing latency and reducing system performance.",
+        "impact": ["High Network Latency", "Processing Overhead", "Decreased Responsiveness"],
+        "severity": "Medium",
+        "guidance": "Use tracing tools to monitor inter-service traffic volume. High message frequency between the same services signals chatty behavior."
+    },
+    {
+        "name": "Inadequate Service Boundaries",
+        "description": "Services are either too fine- or coarse-grained, resulting in unclear responsibilities and modularity issues.",
+        "impact": ["Service Composition Complexity", "Overlapping or Missing Responsibilities", "Reduced Maintainability"],
+        "severity": "Medium",
+        "guidance": "Review service responsibilities. If responsibilities overlap or lack alignment with business domains, the boundaries are likely inadequate."
+    },
+    {
+        "name": "Service Sprawl",
+        "description": "An excessive number of microservices are created without proper governance, increasing complexity and operational overhead.",
+        "impact": ["Management and Monitoring Difficulty", "Increased Deployment Costs", "Architectural Comprehension Challenges"],
+        "severity": "Medium",
+        "guidance": "Evaluate service registry and monitoring tools. If managing and tracking services is difficult, sprawl is a likely issue."
+    },
+    {
+        "name": "Over-Reliance on Orchestration",
+        "description": "Microservices become too dependent on orchestration platforms, limiting portability and autonomy.",
+        "impact": ["Tight Coupling with Orchestration Tools", "Migration Barriers", "Reduced Scalability and Flexibility"],
+        "severity": "Medium",
+        "guidance": "Review deployment scripts and pipelines. Heavy use of centralized orchestrators without fallback mechanisms indicates over-reliance."
+    },
+    {
+        "name": "Ignoring Observability",
+        "description": "Lack of proper logging, monitoring, and tracing makes it difficult to maintain and troubleshoot microservices.",
+        "impact": ["Limited Runtime Insight", "Slow Issue Diagnosis", "Increased MTTR (Mean Time to Resolution)"],
+        "severity": "High",
+        "guidance": "Check for absence or inconsistency in logs, traces, or metrics across services. If debugging requires guesswork, observability is lacking."
+    }, 
+    {
+      "name": "Lack of Idempotency",
+      "description": "Service operations are not idempotent, causing duplicate effects on retry and breaking reliability guarantees.",
+      "impact": [
+        "Data Corruption",
+        "Unreliable Retry Logic"
+      ],
+      "severity": "High",
+      "guidance": "Check if POST/PUT/DELETE operations cause different outcomes when repeated. Look for missing unique request IDs or transaction identifiers. Analyze client retry behavior for repeated side-effect triggers."
+    },
+    {
+      "name": "Fat API Gateway",
+      "description": "The API Gateway handles extensive business logic, leading to a centralized bottleneck and violating separation of concerns.",
+      "impact": [
+        "Performance Bottleneck",
+        "High Coupling"
+      ],
+      "severity": "Medium",
+      "guidance": "Analyze API Gateway code for business rule complexity. Check if services rely on the gateway for decisions beyond routing. Look for deep dependency trees originating from the gateway."
+    },
+    {
+      "name": "Shared State",
+      "description": "Services share in-memory state or static variables, leading to tight coupling and unexpected side effects.",
+      "impact": [
+        "Race Conditions",
+        "Testing Difficulty"
+      ],
+      "severity": "High",
+      "guidance": "Scan for global/static variables or shared caches across services. Check for shared in-process session storage. Look for multi-service access to mutable singleton objects."
+    },
+    {
+      "name": "Synchronous Chains",
+      "description": "Long chains of synchronous service-to-service calls increase latency and amplify failure risks.",
+      "impact": [
+        "Latency Buildup",
+        "System Fragility"
+      ],
+      "severity": "High",
+      "guidance": "Trace request paths for chains longer than 2–3 calls. Check for lack of asynchronous messaging in workflows. Verify use of timeouts, retries, and circuit breakers."
+    },
+    {
+      "name": "Centralized Configuration Misuse",
+      "description": "An over-reliance on centralized configuration without proper separation can lead to environment-specific bugs and fragility.",
+      "impact": [
+        "Hard-to-diagnose Failures",
+        "Non-portable Services"
+      ],
+      "severity": "Medium",
+      "guidance": "Inspect centralized configuration for environment-specific entries. Detect cross-service shared config keys. Analyze startup logs for dynamic versus hard-coded configs."
+    },
+    {
+      "name": "Improper Fault Tolerance Mechanisms",
+      "description": "Missing timeouts, retries, or fallback strategies in service calls reduce system resilience under failure conditions.",
+      "impact": [
+        "System Crashes",
+        "Partial Outages"
+      ],
+      "severity": "High",
+      "guidance": "Check HTTP/gRPC clients for timeout and retry settings. Verify use of circuit breakers. Detect absence of fallback logic in critical service flows."
+    },
+    {
+      "name": "Versioning Hell",
+      "description": "Poor versioning strategies for APIs or libraries result in incompatible deployments and technical debt.",
+      "impact": [
+        "Compatibility Issues",
+        "Long Downtimes"
+      ],
+      "severity": "Medium",
+      "guidance": "Detect services with multiple incompatible version branches. Check for absence of semantic versioning. Scan for breaking changes without versioning suffixes or strategies."
+    },
+    {
+      "name": "Misused Event-Driven Architecture",
+      "description": "Using events for tightly coupled or command-style logic causes confusion and weakens contracts between services.",
+      "impact": [
+        "Debugging Complexity",
+        "Poor Event Traceability"
+      ],
+      "severity": "Medium",
+      "guidance": "Inspect event names for imperative style (e.g., 'DoX', 'TriggerY'). Check for strong dependencies on event order or timing. Review event schemas for versioning and backward compatibility."
+    }
+]
+
 }
