@@ -25,25 +25,24 @@ public class ChatController {
     @Autowired
     private RagService ragService;
 
-    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
+    // @PostMapping
+    // @Operation(
+    //         summary = "Chat with the controller",
+    //         description = "Ask the model a question based on a specific repository's ingested context."
+    // )
+    // public ResponseEntity<Answer> chat(@RequestBody Question q) {
+    //     try {
+    //         log.info("Received question: '{}' for repo: '{}'", q.getText(), q.getRepoId());
+    //         String response = ragService.answer(q.getText(), q.getRepoId());
+    //         return ResponseEntity.ok(new Answer(response));
+    //     } catch (Exception e) {
+    //         log.error("Chat processing failed for question '{}'", q.getText(), e);
+    //         return ResponseEntity
+    //                 .internalServerError()
+    //                 .body(new Answer("Sorry, I couldn't process your question right now."));
+    //     }
+    // }
 
-    @PostMapping
-    @Operation(
-            summary = "Chat with the controller",
-            description = "Ask the model a question based on a specific repository's ingested context."
-    )
-    public ResponseEntity<Answer> chat(@RequestBody Question q) {
-        try {
-            log.info("Received question: '{}' for repo: '{}'", q.getText(), q.getRepoId());
-            String response = ragService.answer(q.getText(), q.getRepoId());
-            return ResponseEntity.ok(new Answer(response));
-        } catch (Exception e) {
-            log.error("Chat processing failed for question '{}'", q.getText(), e);
-            return ResponseEntity
-                    .internalServerError()
-                    .body(new Answer("Sorry, I couldn't process your question right now."));
-        }
-    }
 
     @PostMapping("/analyze")
 @Operation(
@@ -52,7 +51,9 @@ public class ChatController {
 )
 public ResponseEntity<Report> analyze(@RequestBody Repo gitUrl) {
     try {
-        Report report = ragService.getReport(gitUrl.getUrl());
+        // Report report = ragService.getReport(gitUrl.getUrl());
+        log.info("********Calling NEW REPORT******");
+        Report report = ragService.newReport(gitUrl.getUrl());
         return ResponseEntity.ok(report);
     } catch (Exception e) {
         e.printStackTrace();
@@ -62,8 +63,8 @@ public ResponseEntity<Report> analyze(@RequestBody Repo gitUrl) {
                 "Error extracting dependencies.",
                 "Error running analysis.",
                 "Error displaying architecture.",
-                "Error providing recommendations.",
-                "Error identifying service boundary.",
+                // "Error providing recommendations.",
+                // "Error identifying service boundary.",
                 "Error displaying refactored architecture"
             )
         );
@@ -79,3 +80,4 @@ public ResponseEntity<Report> analyze(@RequestBody Repo gitUrl) {
         return "Status: UP";
     }
 }
+

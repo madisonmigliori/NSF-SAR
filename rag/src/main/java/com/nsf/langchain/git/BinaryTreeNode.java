@@ -4,32 +4,51 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BinaryTreeNode {
-    public String name;
-    public String type;
-    public String url;
-    public String content;
-    public List<BinaryTreeNode> children;
+    String name, type, url, content;
+    List<BinaryTreeNode> children;
+    String size;
 
-    // For directories and repos
-    public BinaryTreeNode(String name, String type, String url) {
+    // for any dirs and the initial repo because allows for children 
+    //  and doesnt require content
+    public BinaryTreeNode(String name, String type, String url, String size) {
         this.name = name;
         this.type = type;
         this.url = url;
-        this.children = new ArrayList<>();
+        this.children = new ArrayList<BinaryTreeNode>();
+        this.size = size;
     }
 
-    // For files
-    public BinaryTreeNode(String name, String type, String url, String content) {
+    // for files in the github because they cannot have children 
+    public BinaryTreeNode(String name, String type, String url, String content, String size) {
         this.name = name;
         this.type = type;
         this.url = url;
         this.content = content;
-        this.children = new ArrayList<>(); 
+        this.size = size;
     }
 
-    @Override
-    public String toString() {
-        return type + ": " + name;
+    public void addChild(BinaryTreeNode parent, BinaryTreeNode child){
+        parent.children.add(child);
+    }
+
+    public String getName(){
+        return name;
+    }
+
+    public String getType(){
+        return type;
+    }
+    public String getUrl(){
+        return url;
+    }
+    public List<BinaryTreeNode> getChildren(){
+        return children;
+    }
+    public String getContent(){
+        return content;
+    }
+    public String getSize(){
+        return size;
     }
 
 }

@@ -3,7 +3,7 @@
     {
       "name": "Scalability",
       "description": "Each microservice should operate independently, enabling individual components to be scaled without affecting the entire system.",
-      "guidance": "Flag files with layers of dependencies and  function dependencies. Look for resilience patterns if implemented. Looking for configuration servers, service discovery, and api gateways.",
+      "guidance": "Flag files with layers of dependencies and function dependencies. Look for resilience patterns if implemented. Looking for configuration servers, service discovery, and api gateways.",
       "patterns": ["Proxy", "Sequential Convoy", "Service Mesh", "Domain-Driven Design", "Transaction", "Publish/Subscribe", "Strangler Fig", "Event-Driven Communication", "Asynchronous Communication", "Smart endpoint, dumb pipes", "Message Broker", "Token-Based Authentication", "Event-Driven Autoscaling", "Auto Scaling", "Valet Key", "Priority Queue", "Gateways", "Service Discovery", "Client Side UI Composition", "Database Per Service", "Data Sharding", "Chain of Responsibility", "Command Query Responsibility Segregation", "Polyglot Persistence"],
       "weight": 0.3
     },

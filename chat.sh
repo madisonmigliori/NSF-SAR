@@ -51,6 +51,19 @@ else
   echo "$response"
 fi
 
+# Optionally prompt user first:
+# read -rp "Do you want to run architecture analysis now? (y/n): " analyzeConfirm
+# if [[ "$analyzeConfirm" == "y" ]]; then
+  echo "Running architecture analysis..."
+
+  analysisResponse=$(curl -s -X POST http://localhost:8080/api/chat/analyze \
+    -H "Content-Type: application/json" \
+    -d "{\"url\": \"$repoUrl\"}")
+
+  echo "$analysisResponse" | jq .
+# fi
+
+
 
 echo "Ask your question (type /bye to exit):"
 while true; do

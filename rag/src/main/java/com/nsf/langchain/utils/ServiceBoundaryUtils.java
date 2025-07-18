@@ -16,11 +16,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Component;
 import org.testcontainers.shaded.org.apache.commons.lang3.arch.Processor.Arch;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nsf.langchain.git.BinaryTreeNode;
+
 import java.util.regex.Pattern;
 
 @Component
@@ -52,9 +55,6 @@ private static final Pattern SHARED_PATTERN = Pattern.compile(
     "(?i)\\b(Logger\\b|Validator\\b|Utils?\\b|Helper\\b|Exception\\b|Error\\b|Config\\b|Constants\\b|Settings\\b" +
     "|Common\\b|Middleware\\b|Filter\\b|Interceptor\\b|Adapter\\b|Transformer\\b|Bridge\\b|Base\\b|Shared\\b|Wrapper\\b|Factory\\b|Strategy\\b)\\b"
 );
-
-    
-
 
     public static class ArchitectureMap{
         public static class LayeredService {
@@ -103,79 +103,109 @@ private static final Pattern SHARED_PATTERN = Pattern.compile(
         }
 
 
-    public void printLayers() {
-        services.forEach((service, layers) -> {
-            System.out.println("Service: " + service);
+        public void printLayers() {
+            services.forEach((service, layers) -> {
+                System.out.println("Service: " + service);
+        
+                if (!layers.presentation.isEmpty())
+                    System.out.println("Presentation: " + layers.presentation);
+                if (!layers.api.isEmpty())
+                    System.out.println("API: " + layers.api);
+                if (!layers.business.isEmpty())
+                    System.out.println("Business: " + layers.business);
+                if (!layers.data.isEmpty())
+                    System.out.println("Data: " + layers.data);
+                if (!layers.shared.isEmpty())
+                    System.out.println("Shared: " + layers.shared);
+        
+                System.out.println(); // Spacer between services
+            });
+        }
+
+        public static String getLayersAsString(ArchitectureMap map) {
+            StringBuilder sb = new StringBuilder();
+
+            map.services.forEach((service, layers) -> {
+                sb.append("Service: ").append(service).append("\n");
+
+                if (!layers.presentation.isEmpty())
+                    sb.append("Presentation: ").append(layers.presentation).append("\n");
+                if (!layers.api.isEmpty())
+                    sb.append("API: ").append(layers.api).append("\n");
+                if (!layers.business.isEmpty())
+                    sb.append("Business: ").append(layers.business).append("\n");
+                if (!layers.data.isEmpty())
+                    sb.append("Data: ").append(layers.data).append("\n");
+                if (!layers.shared.isEmpty())
+                    sb.append("Shared: ").append(layers.shared).append("\n");
+
+                sb.append("\n"); // Spacer between services
+            });
+
+            return sb.toString();
+        }
     
-            if (!layers.presentation.isEmpty())
-                System.out.println("Presentation: " + layers.presentation);
-            if (!layers.api.isEmpty())
-                System.out.println("API: " + layers.api);
-            if (!layers.business.isEmpty())
-                System.out.println("Business: " + layers.business);
-            if (!layers.data.isEmpty())
-                System.out.println("Data: " + layers.data);
-            if (!layers.shared.isEmpty())
-                System.out.println("Shared: " + layers.shared);
     
-            System.out.println(); // Spacer between services
-        });
     }
-    
-    }
 
-    public List<ServiceBoundary> extractCode(Path rootPath) throws IOException{
-        List<ServiceBoundary> artifacts = new ArrayList<>();
+    // // public List<ServiceBoundary> extractCode(Path rootPath) throws IOException{
+    // public List<ServiceBoundary> extractCode(BinaryTreeNode node) throws IOException{
+    //     List<ServiceBoundary> artifacts = new ArrayList<>();
+    //     String fileName = node.getName();
+    //     String content = node.getContent();
 
-        Files.walk(rootPath)
-        .filter(Files::isRegularFile)
-        .forEach(file -> {
-            try {
-                String content = Files.readString(file);
-                String fileName = file.toString();
+    //     // Files.walk(rootPath)
+    //     // .filter(Files::isRegularFile)
+    //     // .forEach(file -> {
+    //         try {
+    //             // String content = Files.readString(file);
+    //             // String fileName = file.toString();
 
-                if(fileName.endsWith(".java")){
-                    artifacts.addAll(extractJava(fileName, content));
-                }
+    //             if(fileName.endsWith(".java")){
+    //                 artifacts.addAll(extractJava(fileName, content));
+    //             }
 
-                if(fileName.endsWith(".py")){
-                    artifacts.addAll(extractPy(fileName, content));
-                }
+    //             if(fileName.endsWith(".py")){
+    //                 artifacts.addAll(extractPy(fileName, content));
+    //             }
 
-                if(fileName.endsWith(".js")|| fileName.endsWith(".ts")) {
-                    artifacts.addAll(extractJs(fileName, content));
-                }
-                if(fileName.endsWith(".go")){
-                    artifacts.addAll(extractGo(fileName, content));
-                }
-                if(fileName.endsWith(".rs")){
-                    artifacts.addAll(extractRs(fileName, content));
-                }
-                if(fileName.endsWith(".cpp")|| fileName.endsWith(".h") || fileName.endsWith(".hpp")){
-                    artifacts.addAll(extractCpp(fileName, content));
-                }
-                if(fileName.endsWith(".rb")){
-                    artifacts.addAll(extractRuby(fileName, content));
-                }
-                if(fileName.endsWith(".jsx")|| fileName.endsWith(".tsx")){
-                    artifacts.addAll(extractReact(fileName, content));
-                }
+    //             if(fileName.endsWith(".js")|| fileName.endsWith(".ts")) {
+    //                 artifacts.addAll(extractJs(fileName, content));
+    //             }
+    //             if(fileName.endsWith(".go")){
+    //                 artifacts.addAll(extractGo(fileName, content));
+    //             }
+    //             if(fileName.endsWith(".rs")){
+    //                 artifacts.addAll(extractRs(fileName, content));
+    //             }
+    //             if(fileName.endsWith(".cpp")|| fileName.endsWith(".h") || fileName.endsWith(".hpp")){
+    //                 artifacts.addAll(extractCpp(fileName, content));
+    //             }
+    //             if(fileName.endsWith(".rb")){
+    //                 artifacts.addAll(extractRuby(fileName, content));
+    //             }
+    //             if(fileName.endsWith(".jsx")|| fileName.endsWith(".tsx")){
+    //                 artifacts.addAll(extractReact(fileName, content));
+    //             }
             
-            }
-            catch (IOException e){
-                e.printStackTrace();
+    //         }
+    //         catch (IOException e){
+    //             e.printStackTrace();
 
-            }
-        });
-        return artifacts;
-    }
+    //         }
+    //     // });
+    //     return artifacts;
+    // }
 
-    public List<ServiceBoundary> extractCode(Map<String, String> files) {
+    // public List<ServiceBoundary> extractCode(Map<String, String> files) {
+    public List<ServiceBoundary> extractCode(BinaryTreeNode node){
         List<ServiceBoundary> artifacts = new ArrayList<>();
     
-        for (Map.Entry<String, String> entry : files.entrySet()) {
-            String fileName = entry.getKey();
-            String content = entry.getValue();
+        // for (Map.Entry<String, String> entry : files.entrySet()) {
+            // String fileName = entry.getKey();
+            // String content = entry.getValue();
+            String fileName = node.getName();
+            String content = node.getContent();
     
             if (fileName.endsWith(".java")) {
                 artifacts.addAll(extractJava(fileName, content));
@@ -194,7 +224,7 @@ private static final Pattern SHARED_PATTERN = Pattern.compile(
             } else if (fileName.endsWith(".jsx") || fileName.endsWith(".tsx")) {
                 artifacts.addAll(extractReact(fileName, content));
             }
-        }
+        // }
     
         return artifacts;
     }

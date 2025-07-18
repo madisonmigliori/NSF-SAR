@@ -41,4 +41,8 @@ rag/src/main/resources/nsf-sar.2025-06-24.pkcs8.pem
 
 docker/docker-compose.yaml
 rag/src/main/java/com/nsf/langchain/git/GitHubApiHello.java
-
+docker/docker-compose.yaml
+docker/Dockerfile.chroma
+docker/Dockerfile.ollama
+rag/src/main/java/com/nsf/langchain/git/token/GetToken.java
+rag/.env

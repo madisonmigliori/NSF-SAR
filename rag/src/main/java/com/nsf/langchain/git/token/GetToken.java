@@ -9,8 +9,8 @@ public class GetToken {
     public GetToken(){
         try {
             Dotenv dotenv = Dotenv.load();
-            String key = dotenv.get("GITHUB_API_TOKEN");
-            this.token = GitHubAppAuth.generateJWT("1393268", new File(key));
+            // String key = dotenv.get("GITHUB_API_TOKEN");
+            this.token = GitHubAppAuth.generateJWT("1393268", new File("src/main/resources/nsf-sar.2025-06-24.pkcs8.pem"));
         } catch (Exception e) {
             e.printStackTrace();
         }

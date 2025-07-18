@@ -17,8 +17,8 @@ public class Report {
     private String dependencies;
     private String analysis;
     private String architecture;
-    private String serviceBoundary;
-    private String recommendations;
+    // private String serviceBoundary;
+    // private String recommendations;
     private String architectureRec;
 
 
@@ -28,8 +28,8 @@ public class Report {
                      .map(dep -> "- " + dep.trim())
                      .collect(Collectors.joining("\n"));
     }
-    
-    @Override
+
+        @Override
     public String toString() {
         return """
             === Repository Analysis Report ===
@@ -58,11 +58,46 @@ public class Report {
             dependencies,
             analysis,
             architecture,
-            serviceBoundary,
-            recommendations,
+            // serviceBoundary,
+            // recommendations,
             architectureRec
         );
     }
+    
+    // @Override
+    // public String toString() {
+    //     return """
+    //         === Repository Analysis Report ===
+    
+    //         Repository ID: %s
+    
+    //         --- Dependency Overview ---
+    //         %s
+    
+    //         --- Architecture Analysis ---
+    //         %s
+    
+    //         --- Current Architecture Diagram ---
+    //         %s
+    
+    //         --- Identified Service Boundaries ---
+    //         %s
+    
+    //         --- Recommended Improvements ---
+    //         %s
+
+    //         --- Refactored Architecture Plan ---
+    //         %s
+    //         """.formatted(
+    //         repoId,
+    //         dependencies,
+    //         analysis,
+    //         architecture,
+    //         // serviceBoundary,
+    //         // recommendations,
+    //         architectureRec
+    //     );
+    // }
     
     
 }

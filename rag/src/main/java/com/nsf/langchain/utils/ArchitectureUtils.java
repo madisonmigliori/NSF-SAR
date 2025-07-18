@@ -15,6 +15,8 @@ import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -26,16 +28,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nsf.langchain.git.BinaryTreeNode;
 import com.nsf.langchain.git.GitHubApi;
+import com.nsf.langchain.service.ChromaVectorStoreManager;
 
 
 @Component
 public class ArchitectureUtils {
-    private final GitHubApi gitHubApi;
+    // private final GitHubApi gitHubApi;
     private final ObjectMapper mapper = new ObjectMapper();
     private Map<String, List<String>> catergoryKeywords;
 
-    public ArchitectureUtils(GitHubApi gitHubApi){
-        this.gitHubApi = gitHubApi;
+    private static final Logger log = LoggerFactory.getLogger(ArchitectureUtils.class);
+
+
+    public ArchitectureUtils(){
+        // this.gitHubApi = gitHubApi;
         loadCatergoryKeywords();
     }
 
@@ -68,7 +74,7 @@ public class ArchitectureUtils {
        return "Other";
     }
 
-    public String getDependency(String user, String repo) throws Exception {
+    public String getDependency(String fileName, String content) throws Exception {
     List<String> allDependencies = new ArrayList<>();
     
     Set<String> filesToCheck = Set.of(
@@ -78,21 +84,21 @@ public class ArchitectureUtils {
         "Cargo.toml", "go.mod", "Gopkg.toml", ".csproj", "Gemfile", "CMakeLists.txt", "Makefile"
     );
     
-    String gitUrl = String.format("https://github.com/%s/%s.git", user, repo);
-    List<String> allPaths = gitHubApi.listAllFilePaths(gitUrl);
-    String repoPrefix = repo + "/";
+    // String gitUrl = String.format("https://github.com/%s/%s.git", user, repo);
+    // List<String> allPaths = gitHubApi.listAllFilePaths(gitUrl);
+    // String repoPrefix = repo + "/";
 
-    for (String path : allPaths) {
-        String relativePath = path.startsWith(repoPrefix) ? path.substring(repoPrefix.length()) : path;
-        String fileName = relativePath.substring(relativePath.lastIndexOf('/') + 1);
-        if (filesToCheck.contains(fileName)) {
+    // for (String path : allPaths) {
+        // String relativePath = path.startsWith(repoPrefix) ? path.substring(repoPrefix.length()) : path;
+        // String fileName = relativePath.substring(relativePath.lastIndexOf('/') + 1);
+        // if (filesToCheck.contains(fileName)) {
             try {
                 // System.out.println("Fetching and parsing: " + relativePath);
-                String content = gitHubApi.fetchFileContent(user, repo, relativePath);
-                if (content == null || content.isEmpty()) {
+                // String content = gitHubApi.fetchFileContent(user, repo, relativePath);
+                // if (content == null || content.isEmpty()) {
                     // System.out.println("Empty content for file: " + relativePath);
-                    continue;
-                }
+                    // continue;
+                // }
 
                 switch (fileName) {
                     case "pom.xml":
@@ -145,14 +151,14 @@ public class ArchitectureUtils {
                         System.out.println("No parser defined for file: " + fileName);
                         break;
                 }
-                System.out.println("Parsed " + path + ", found " + allDependencies.size() + " total dependencies so far.");
+                System.out.println("Parsed " + ", found " + allDependencies.size() + " total dependencies so far.");
             } catch (Exception e) {
-                System.err.println("Error parsing " + path + ": " + e.getMessage());
+                System.err.println("Error parsing " + ": " + e.getMessage());
                 e.printStackTrace();
             }
-        }
+        // }
 
-    }
+    // }
     Map<String, List<String>> categorized = new LinkedHashMap<>();
     for (String dep : allDependencies) {
         String cat = categorizeDependency(dep);
@@ -498,41 +504,43 @@ public class ArchitectureUtils {
 
     public String displayArchitecture(BinaryTreeNode node) {
         StringBuilder diagram = new StringBuilder();
+        // log.info("REACHED DISPLAY ARCHITECTURE");
         buildTreeDiagram(node, "", true, diagram);
         return diagram.toString();
     }
     
     private void buildTreeDiagram(BinaryTreeNode node, String prefix, boolean isTail, StringBuilder diagram) {
         if (node == null) return;
-    
+        // log.info("COLLECTING DISPLAY ARCHITECTURE");
+
         diagram.append(prefix)
                .append(isTail ? "└── " : "├── ")
-               .append(node.type)
+               .append(node.getType())
                .append(" ")
-               .append(node.name)
+               .append(node.getName())
                .append("\n");
     
-        if (node.children != null && !node.children.isEmpty()) {
-            for (int i = 0; i < node.children.size(); i++) {
-                boolean last = (i == node.children.size() - 1);
-                buildTreeDiagram(node.children.get(i), prefix + (isTail ? "    " : "│   "), last, diagram);
+        if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+            for (int i = 0; i < node.getChildren().size(); i++) {
+                boolean last = (i == node.getChildren().size() - 1);
+                buildTreeDiagram(node.getChildren().get(i), prefix + (isTail ? "    " : "│   "), last, diagram);
             }
         }
     }
     
     
 
-    public void buildTree(BinaryTreeNode node, Path path) throws IOException {
-    try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
-        for (Path entry : stream) {
-            String type = Files.isDirectory(entry) ? "directory" : "file";
-            BinaryTreeNode child = new BinaryTreeNode(entry.getFileName().toString(), type, entry.toString());
-            node.children.add(child);
-            if (Files.isDirectory(entry)) {
-                buildTree(child, entry);
-            }
-        }
-    }
-}
+//     public void buildTree(BinaryTreeNode node, Path path) throws IOException {
+//     try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
+//         for (Path entry : stream) {
+//             String type = Files.isDirectory(entry) ? "directory" : "file";
+//             BinaryTreeNode child = new BinaryTreeNode(entry.getFileName().toString(), type, entry.toString(),);
+//             node.children.add(child);
+//             if (Files.isDirectory(entry)) {
+//                 buildTree(child, entry);
+//             }
+//         }
+//     }
+// }
 
 }
